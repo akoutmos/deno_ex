@@ -15,13 +15,13 @@ defmodule DenoExTest do
     {:ok, Map.put(env, :install_path, DenoEx.executable_path())}
   end
 
-  test "works with no arguments", %{install_path: install_path} do
+  test "works with no arguments" do
     assert {:ok, "Hello, world.\n"} ==
-             DenoEx.run("test/support/hello.ts", _script_args = [], deno_path: install_path)
+             DenoEx.run("test/support/hello.ts", _script_args = [])
   end
 
-  test "can pass script arguments", %{install_path: install_path} do
+  test "can pass script arguments" do
     assert {:ok, "arg1 arg2\n"} ==
-             DenoEx.run("test/support/args_echo.ts", ~w[arg1 arg2], deno_path: install_path)
+             DenoEx.run("test/support/args_echo.ts", ~w[arg1 arg2])
   end
 end
