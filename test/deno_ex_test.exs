@@ -6,8 +6,6 @@ defmodule DenoExTest do
 
   def ensure_deno_installed(env) do
     deno_path = "#{DenoEx.executable_path()}/deno"
-    File.rm(deno_path)
-
     unless File.exists?(deno_path) do
       DenoEx.DenoDownloader.install(DenoEx.executable_path(), 0o770)
     end
