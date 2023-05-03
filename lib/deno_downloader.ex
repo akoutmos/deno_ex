@@ -15,7 +15,9 @@ defmodule DenoEx.DenoDownloader do
 
   def install(install_path, permissions)
       when is_binary(install_path) and is_integer(permissions) do
-    with {:ok, [path], []} <- DenoEx.DenoDownloader.download(install_path) do
+    with :ok <- File.mkdir_p(install_path),
+         {:ok, [path], []} <-
+           DenoEx.DenoDownloader.download(install_path) do
       File.chmod(path, permissions)
       {:ok, path}
     end
