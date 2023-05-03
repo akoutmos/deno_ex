@@ -122,6 +122,53 @@ defmodule DenoExTest do
     end
   end
 
+  describe "allow_net" do
+    test "not allowed" do
+      assert {:error, error_message} = DenoEx.run("test/support/network.ts", ~w[0.0.0.0 9999])
+
+      assert error_message =~ "PermissionDenied"
+    end
+
+    test "allowing across the board" do
+      assert {:ok, _} = DenoEx.run("test/support/network.ts", ~w[0.0.0.0 9999], allow_net: true)
+    end
+
+    test "allowing access to specific addresses" do
+      assert {:ok, _} =
+               DenoEx.run("test/support/network.ts", ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.0])
+
+      assert {:error, error_message} =
+               DenoEx.run("test/support/network.ts", ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.1])
+
+      assert error_message =~ "PermissionDenied"
+    end
+
+    test "allowing access to specific ports" do
+      assert {:ok, _} =
+               DenoEx.run("test/support/network.ts", ~w[0.0.0.0 9999], allow_net: ~w[:9999])
+
+      assert {:error, error_message} =
+               DenoEx.run("test/support/network.ts", ~w[0.0.0.0 9999], allow_net: ~w[:9998])
+
+      assert error_message =~ "PermissionDenied"
+    end
+
+    test "allowing access to specific address and port" do
+      assert {:ok, _} =
+               DenoEx.run("test/support/network.ts", ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.0:9999])
+
+      assert {:error, error_message} =
+               DenoEx.run("test/support/network.ts", ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.0:9998])
+
+      assert error_message =~ "PermissionDenied"
+
+      assert {:error, error_message} =
+               DenoEx.run("test/support/network.ts", ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.1:9999])
+
+      assert error_message =~ "PermissionDenied"
+    end
+  end
+
   describe "allow_hrtime" do
     test "without hrtime allowed" do
       non_high_resolution = 1_000_000
