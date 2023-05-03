@@ -90,6 +90,24 @@ defmodule DenoEx do
                           true: allows all subprocesses to be run
                           [Path.t()]: A list of subprocess to run
                           """
+                        ],
+                        allow_write: [
+                          type: {:or, [:boolean, list: :string]},
+                          doc: """
+                          Allow the ability to write files.
+
+                          true: allows all files to be written
+                          [Path.t()]: A list of files that can be written
+                          """
+                        ],
+                        allow_read: [
+                          type: {:or, [:boolean, list: :string]},
+                          doc: """
+                          Allow the ability to read files.
+
+                          true: allows all files to be read
+                          [Path.t()]: A list of files that can be read
+                          """
                         ]
                       ]
                       |> NimbleOptions.new!()
