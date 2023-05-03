@@ -22,7 +22,7 @@ defmodule DenoEx do
                         allow_env: [
                           type: {:or, [:boolean, list: :string]},
                           doc: """
-                          This option allows read and write access to environment variables.
+                          Allows read and write access to environment variables.
 
                           true: allows full access to the environment variables
                           [String.t()]: allows access to only the subset of variables in the list.
@@ -31,13 +31,23 @@ defmodule DenoEx do
                         allow_sys: [
                           type: {:or, [:boolean, list: :string]},
                           doc: """
-                          This option allows axxess to APIs that provide system information.
+                          Allows access to APIs that provide system information.
                           ie. hostname, memory usage
 
                           true: allows full access
                           [String.t()]: allows access to only the subset calls.
                           hostname, osRelease, osUptime, loadavg, networkInterfaces,
                           systemMemoryInfo, uid, and gid
+                          """
+                        ],
+                        allow_net: [
+                          type: {:or, [:boolean, list: :string]},
+                          doc: """
+                          Allows network access.
+
+                          true: allows full access to network
+                          [String.t()]: allows access to only the network connections specified
+                              ie. 127.0.0.1:4000, 127.0.0.1, :4001
                           """
                         ]
                       ]
@@ -70,7 +80,7 @@ defmodule DenoEx do
 
       {:ok, _pid, identifier} =
         deno_path
-        |> :exec.run_link([:stdout, :stderr])
+        |> :exec.run_link([:stdout, :stderr, :monitor])
 
       receive do
         {:stdout, ^identifier, output} ->
