@@ -23,6 +23,18 @@ defmodule DenoEx do
                           true: allows full access to the environment variables
                           [String.t()]: allows access to only the subset of variables in the list.
                           """
+                        ],
+                        allow_sys: [
+                          type: {:or, [:boolean, list: :string]},
+                          doc: """
+                          This option allows axxess to APIs that provide system information.
+                          ie. hostname, memory usage
+
+                          true: allows full access
+                          [String.t()]: allows access to only the subset calls.
+                          hostname, osRelease, osUptime, loadavg, networkInterfaces,
+                          systemMemoryInfo, uid, and gid
+                          """
                         ]
                       ]
                       |> NimbleOptions.new!()
@@ -32,6 +44,9 @@ defmodule DenoEx do
   ## Options
 
     #{NimbleOptions.docs(@run_options_schema)}
+
+    Please refere to [Deno Permissions](https://deno.com/manual@v1.33.1/basics/permissions) for more details.
+
   """
   @spec run(script, script_arguments, options) :: {:ok, String.t()} | {:error, term()}
   def run(script, script_args \\ [], options \\ []) do

@@ -6,6 +6,7 @@ defmodule DenoExTest do
 
   def ensure_deno_installed(env) do
     deno_path = "#{DenoEx.executable_path()}/deno"
+
     unless File.exists?(deno_path) do
       DenoEx.DenoDownloader.install(DenoEx.executable_path(), 0o770)
     end
@@ -26,11 +27,13 @@ defmodule DenoExTest do
   test "unknown deno arguments" do
     assert {:error,
             %NimbleOptions.ValidationError{
-              message: "unknown options [:unknown], valid options are: [:deno_path, :allow_env]",
+              message: message,
               key: [:unknown],
               value: nil,
               keys_path: []
-            }} == DenoEx.run("test/support/args_echo.ts", ~w[arg], unknown: "foo")
+            }} = DenoEx.run("test/support/args_echo.ts", ~w[arg], unknown: "foo")
+
+    assert message =~ "unknown options"
   end
 
   describe "allow_env option" do
@@ -63,6 +66,37 @@ defmodule DenoExTest do
 
       assert {:error, error_message} =
                DenoEx.run("test/support/env_echo.ts", ~w[USER], allow_env: ~w[SHELL])
+
+      assert error_message =~ "PermissionDenied"
+    end
+  end
+
+  describe "allow_sys option" do
+    test "can't access system information without the flag" do
+      assert {:error, error_message} = DenoEx.run("test/support/system_calls.ts", ~w[], [])
+      assert error_message =~ "PermissionDenied"
+
+      assert {:error, error_message} =
+               DenoEx.run("test/support/system_calls.ts", ~w[], allow_sys: false)
+
+      assert error_message =~ "PermissionDenied"
+    end
+
+    test "full access" do
+      {:ok, hostname} = :inet.gethostname()
+
+      assert {:ok, "#{hostname}.local\n"} ==
+               DenoEx.run("test/support/system_calls.ts", ~w[], allow_sys: true)
+    end
+
+    test "partial access" do
+      {:ok, hostname} = :inet.gethostname()
+
+      assert {:ok, "#{hostname}.local\n"} ==
+               DenoEx.run("test/support/system_calls.ts", ~w[], allow_sys: ~w[hostname uid])
+
+      assert {:error, error_message} =
+               DenoEx.run("test/support/system_calls.ts", ~w[], allow_sys: ~w[uid])
 
       assert error_message =~ "PermissionDenied"
     end
