@@ -24,6 +24,26 @@ defmodule DenoExTest do
              DenoEx.run("test/support/args_echo.ts", ~w[arg1 arg2])
   end
 
+  test "large outputs" do
+    lines = 9
+    per_line = 100
+
+    expected_output =
+      "a"
+      |> String.duplicate(per_line)
+      |> then(&(&1 <> "\n"))
+      |> String.duplicate(lines)
+
+    assert {:ok, expected_output} ==
+             DenoEx.run("test/support/how_many_chars.ts", ~w[#{lines * per_line} #{per_line}])
+  end
+
+  test "bad exit" do
+    assert {:error, message} = DenoEx.run("test/support/fail.ts", ~w[])
+
+    assert message =~ "exited with status code"
+  end
+
   test "unknown deno arguments" do
     assert {:error,
             %NimbleOptions.ValidationError{
@@ -146,6 +166,35 @@ defmodule DenoExTest do
                DenoEx.run("test/support/network.ts", ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.1:9999])
 
       assert error_message =~ "PermissionDenied"
+    end
+  end
+
+  describe "allow_hrtime" do
+    test "without hrtime allowed" do
+      non_high_resolution = 1_000_000
+
+      assert {:ok, time} = DenoEx.run("test/support/hrtime.ts", ~w[], allow_hrtime: false)
+
+      {time, _} = Integer.parse(time)
+
+      assert rem(time, non_high_resolution) == 0
+
+      assert {:ok, time} = DenoEx.run("test/support/hrtime.ts", ~w[])
+      {time, _} = Integer.parse(time)
+
+      assert rem(time, non_high_resolution) == 0
+    end
+
+    test "when hrtime is allowed" do
+      non_high_resolution = 1_000_000
+
+      # using two times to reduce the chance that both will be ending in 000_000
+      assert {:ok, time} = DenoEx.run("test/support/hrtime.ts", ~w[], allow_hrtime: true)
+      assert {:ok, time2} = DenoEx.run("test/support/hrtime.ts", ~w[], allow_hrtime: true)
+      {time, _} = Integer.parse(time)
+      {time2, _} = Integer.parse(time2)
+
+      assert rem(time + time2, non_high_resolution) != 0
     end
   end
 end

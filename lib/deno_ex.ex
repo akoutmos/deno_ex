@@ -19,6 +19,12 @@ defmodule DenoEx do
                           type: :string,
                           doc: "the path where the deno executable is installed."
                         ],
+                        timeout: [
+                          type: :pos_integer,
+                          default: 100,
+                          doc:
+                            "Timeout in milliseconds to wait for the script to run before aborting."
+                        ],
                         allow_env: [
                           type: {:or, [:boolean, list: :string]},
                           doc: """
@@ -47,7 +53,13 @@ defmodule DenoEx do
 
                           true: allows full access to network
                           [String.t()]: allows access to only the network connections specified
-                              ie. 127.0.0.1:4000, 127.0.0.1, :4001
+                          ie. 127.0.0.1:4000, 127.0.0.1, :4001
+                          """
+                        ],
+                        allow_hrtime: [
+                          type: :boolean,
+                          doc: """
+                          Allow high-resolution time measurement. High-resolution time can be used in timing attacks and fingerprinting.
                           """
                         ]
                       ]
@@ -60,12 +72,12 @@ defmodule DenoEx do
     #{NimbleOptions.docs(@run_options_schema)}
 
     Please refere to [Deno Permissions](https://deno.com/manual@v1.33.1/basics/permissions) for more details.
-
   """
   @spec run(script, script_arguments, options) :: {:ok, String.t()} | {:error, term()}
   def run(script, script_args \\ [], options \\ []) do
     with {:ok, options} <- NimbleOptions.validate(options, @run_options_schema),
-         {exec_path, deno_options} = Keyword.pop(options, :deno_path, executable_path()) do
+         {exec_path, deno_options} = Keyword.pop(options, :deno_path, executable_path()),
+         {timeout, deno_options} = Keyword.pop(deno_options, :timeout) do
       deno_options = Enum.map(deno_options, &to_command_line_option/1)
 
       deno_path =
@@ -78,18 +90,52 @@ defmodule DenoEx do
         |> List.flatten()
         |> Enum.join(" ")
 
-      {:ok, _pid, identifier} =
+      {:ok, pid, os_pid} =
         deno_path
-        |> :exec.run_link([:stdout, :stderr, :monitor])
+        |> :exec.run([:stdout, :stderr, :monitor])
 
-      receive do
-        {:stdout, ^identifier, output} ->
-          :exec.stop(identifier)
-          {:ok, output}
+      # Initial state for reduce
+      initial_reduce_results = %{
+        stdout: "",
+        stderr: []
+      }
 
-        {:stderr, ^identifier, output} ->
-          :exec.stop(identifier)
-          {:error, output}
+      result =
+        [nil]
+        |> Stream.cycle()
+        |> Enum.reduce_while(initial_reduce_results, fn _, acc ->
+          receive do
+            {:DOWN, ^os_pid, _, ^pid, {:exit_status, exit_status}} when exit_status != 0 ->
+              error = "Deno script exited with status code #{inspect(exit_status)}\n"
+              existing_errors = Map.get(acc, :stderr, [])
+              {:halt, Map.put(acc, :stderr, [error | existing_errors])}
+
+            {:DOWN, ^os_pid, _, ^pid, :normal} ->
+              {:halt, acc}
+
+            {:stderr, ^os_pid, error} ->
+              error = String.trim(error)
+              existing_errors = Map.get(acc, :stderr, [])
+              {:cont, Map.put(acc, :stderr, [error | existing_errors])}
+
+            {:stdout, ^os_pid, compiled_template_fragment} ->
+              aggregated_template = Map.get(acc, :stdout, "")
+              {:cont, Map.put(acc, :stdout, aggregated_template <> compiled_template_fragment)}
+          after
+            timeout ->
+              :exec.kill(os_pid, :sigterm)
+              error = "Deno script timed out after #{timeout} millisecond(s)"
+              existing_errors = Map.get(acc, :stderr, [])
+              {:halt, Map.put(acc, :stderr, [error | existing_errors])}
+          end
+        end)
+
+      case result do
+        %{stderr: [], stdout: compiled_template} ->
+          {:ok, compiled_template}
+
+        %{stderr: errors} ->
+          {:error, Enum.join(errors, "\n")}
       end
     end
   end
