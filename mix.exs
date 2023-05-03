@@ -11,7 +11,8 @@ defmodule DenoEx.MixProject do
       docs: [
         main: "readme",
         extras: ["README.md"]
-      ]
+      ],
+      compilers: Mix.compilers() ++ [:deno]
     ]
   end
 

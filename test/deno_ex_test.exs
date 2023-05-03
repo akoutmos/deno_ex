@@ -2,18 +2,6 @@ defmodule DenoExTest do
   use ExUnit.Case
   doctest DenoEx
 
-  setup_all :ensure_deno_installed
-
-  def ensure_deno_installed(env) do
-    deno_path = "#{DenoEx.executable_path()}/deno"
-
-    unless File.exists?(deno_path) do
-      DenoEx.DenoDownloader.install(DenoEx.executable_path(), 0o770)
-    end
-
-    {:ok, Map.put(env, :install_path, DenoEx.executable_path())}
-  end
-
   test "works with no arguments" do
     assert {:ok, "Hello, world.\n"} ==
              DenoEx.run("test/support/hello.ts", _script_args = [])
