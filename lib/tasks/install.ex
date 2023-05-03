@@ -6,7 +6,7 @@ defmodule Mix.Tasks.DenoEx.Install do
   @options_schema [
     path: [
       type: :string,
-      default: DenoEx.executable_path(),
+      default: DenoEx.executable_location(),
       doc: "The path to install deno."
     ],
     chmod: [
