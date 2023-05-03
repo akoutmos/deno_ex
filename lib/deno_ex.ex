@@ -8,7 +8,11 @@ defmodule DenoEx do
   @type script_arguments() :: [String.t()]
   @type options() :: keyword()
 
-  @default_executable_path Application.compile_env(:deno_ex, :default_exectutable_path, ".")
+  @default_executable_path Application.compile_env(
+                             :deno_ex,
+                             :default_exectutable_path,
+                             :deno_ex |> :code.priv_dir() |> Path.join("bin")
+                           )
 
   @run_options_schema [
                         deno_path: [
