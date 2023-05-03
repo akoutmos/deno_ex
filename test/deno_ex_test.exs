@@ -24,6 +24,26 @@ defmodule DenoExTest do
              DenoEx.run("test/support/args_echo.ts", ~w[arg1 arg2])
   end
 
+  test "large outputs" do
+    lines = 9
+    per_line = 100
+
+    expected_output =
+      "a"
+      |> String.duplicate(per_line)
+      |> then(&(&1 <> "\n"))
+      |> String.duplicate(lines)
+
+    assert {:ok, expected_output} ==
+             DenoEx.run("test/support/how_many_chars.ts", ~w[#{lines * per_line} #{per_line}])
+  end
+
+  test "bad exit" do
+    assert {:error, message} = DenoEx.run("test/support/fail.ts", ~w[])
+
+    assert message =~ "exited with status code"
+  end
+
   test "unknown deno arguments" do
     assert {:error,
             %NimbleOptions.ValidationError{
