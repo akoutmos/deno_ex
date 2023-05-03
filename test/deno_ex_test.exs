@@ -265,4 +265,48 @@ defmodule DenoExTest do
                )
     end
   end
+
+  describe "allow_read" do
+    setup :create_test_file
+
+    def create_test_file(env) do
+      tmp_dir = System.tmp_dir!()
+      filename = System.monotonic_time() |> to_string()
+
+      path = Path.join(tmp_dir, filename)
+      _ = File.rm(path)
+
+      content = System.monotonic_time() |> to_string()
+
+      File.write!(path, content)
+
+      env
+      |> Map.put(:path, path)
+      |> Map.put(:content, content)
+    end
+
+    test "errors when not allowed", %{path: path} do
+      assert {:error, error_message} = DenoEx.run("test/support/read_file.ts", [path])
+
+      assert error_message =~ "PermissionDenied"
+
+      assert {:error, error_message} =
+               DenoEx.run("test/support/read_file.ts", [path], allow_read: false)
+
+      assert error_message =~ "PermissionDenied"
+
+      assert {:error, error_message} =
+               DenoEx.run("test/support/read_file.ts", [path], allow_read: ~w[/tmp/other_file])
+
+      assert error_message =~ "PermissionDenied"
+    end
+
+    test "when allowed to read", %{path: path, content: content} do
+      assert {:ok, "#{content}\n"} ==
+               DenoEx.run("test/support/read_file.ts", [path], allow_read: true)
+
+      assert {:ok, "#{content}\n"} ==
+               DenoEx.run("test/support/read_file.ts", [path], allow_read: [path])
+    end
+  end
 end

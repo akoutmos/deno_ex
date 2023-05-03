@@ -99,6 +99,15 @@ defmodule DenoEx do
                           true: allows all files to be written
                           [Path.t()]: A list of files that can be written
                           """
+                        ],
+                        allow_read: [
+                          type: {:or, [:boolean, list: :string]},
+                          doc: """
+                          Allow the ability to read files.
+
+                          true: allows all files to be read
+                          [Path.t()]: A list of files that can be read
+                          """
                         ]
                       ]
                       |> NimbleOptions.new!()
