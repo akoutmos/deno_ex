@@ -61,6 +61,21 @@ defmodule DenoEx do
                           doc: """
                           Allow high-resolution time measurement. High-resolution time can be used in timing attacks and fingerprinting.
                           """
+                        ],
+                        allow_ffi: [
+                          type: {:or, [:boolean, list: :string]},
+                          doc: """
+                          Allow loading of dynamic libraries.
+
+                          ## WARNING:
+
+                          Be aware that dynamic libraries are not run in a sandbox and therefore
+                          do not have the same security restrictions as the Deno process.
+                          Therefore, use with caution.
+
+                          true: allows all dlls to be accessed
+                          [Path.t()]: A list of paths to dlls that will be accesible
+                          """
                         ]
                       ]
                       |> NimbleOptions.new!()

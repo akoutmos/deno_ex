@@ -197,4 +197,12 @@ defmodule DenoExTest do
       assert rem(time + time2, non_high_resolution) != 0
     end
   end
+
+  test "allow_ffi" do
+    assert {:ok, "Hello, world.\n"} ==
+             DenoEx.run("test/support/hello.ts", ~w[], allow_ffi: true)
+
+    assert {:ok, "Hello, world.\n"} ==
+             DenoEx.run("test/support/hello.ts", ~w[], allow_ffi: ~w[path/to/lib])
+  end
 end
