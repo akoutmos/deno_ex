@@ -101,4 +101,33 @@ defmodule DenoExTest do
       assert error_message =~ "PermissionDenied"
     end
   end
+
+  describe "allow_hrtime" do
+    test "without hrtime allowed" do
+      non_high_resolution = 1_000_000
+
+      assert {:ok, time} = DenoEx.run("test/support/hrtime.ts", ~w[], allow_hrtime: false)
+
+      {time, _} = Integer.parse(time)
+
+      assert rem(time, non_high_resolution) == 0
+
+      assert {:ok, time} = DenoEx.run("test/support/hrtime.ts", ~w[])
+      {time, _} = Integer.parse(time)
+
+      assert rem(time, non_high_resolution) == 0
+    end
+
+    test "when hrtime is allowed" do
+      non_high_resolution = 1_000_000
+
+      # using two times to reduce the chance that both will be ending in 000_000
+      assert {:ok, time} = DenoEx.run("test/support/hrtime.ts", ~w[], allow_hrtime: true)
+      assert {:ok, time2} = DenoEx.run("test/support/hrtime.ts", ~w[], allow_hrtime: true)
+      {time, _} = Integer.parse(time)
+      {time2, _} = Integer.parse(time2)
+
+      assert rem(time + time2, non_high_resolution) != 0
+    end
+  end
 end

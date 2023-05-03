@@ -39,6 +39,12 @@ defmodule DenoEx do
                           hostname, osRelease, osUptime, loadavg, networkInterfaces,
                           systemMemoryInfo, uid, and gid
                           """
+                        ],
+                        allow_hrtime: [
+                          type: :boolean,
+                          doc: """
+                          Allow high-resolution time measurement. High-resolution time can be used in timing attacks and fingerprinting.
+                          """
                         ]
                       ]
                       |> NimbleOptions.new!()
