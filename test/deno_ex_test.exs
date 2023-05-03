@@ -2,7 +2,23 @@ defmodule DenoExTest do
   use ExUnit.Case
   doctest DenoEx
 
-  setup_all :ensure_deno_installed
+  setup_all [:ensure_deno_installed, :create_test_file]
+
+  def create_test_file(env) do
+    tmp_dir = System.tmp_dir!()
+    filename = System.monotonic_time() |> to_string()
+
+    path = Path.join(tmp_dir, filename)
+    _ = File.rm(path)
+
+    content = System.monotonic_time() |> to_string()
+
+    File.write!(path, content)
+
+    env
+    |> Map.put(:path, path)
+    |> Map.put(:content, content)
+  end
 
   def ensure_deno_installed(env) do
     deno_path = "#{DenoEx.executable_path()}/deno"
@@ -267,24 +283,6 @@ defmodule DenoExTest do
   end
 
   describe "allow_read" do
-    setup :create_test_file
-
-    def create_test_file(env) do
-      tmp_dir = System.tmp_dir!()
-      filename = System.monotonic_time() |> to_string()
-
-      path = Path.join(tmp_dir, filename)
-      _ = File.rm(path)
-
-      content = System.monotonic_time() |> to_string()
-
-      File.write!(path, content)
-
-      env
-      |> Map.put(:path, path)
-      |> Map.put(:content, content)
-    end
-
     test "errors when not allowed", %{path: path} do
       assert {:error, error_message} = DenoEx.run("test/support/read_file.ts", [path])
 
@@ -307,6 +305,33 @@ defmodule DenoExTest do
 
       assert {:ok, "#{content}\n"} ==
                DenoEx.run("test/support/read_file.ts", [path], allow_read: [path])
+    end
+  end
+
+  describe "allow_all" do
+    @values [
+      {"env_echo", ~w[USER]},
+      {"how_many_chars", ~w[10 9]},
+      {"hrtime", []},
+      {"network", ~w[0.0.0.0 8888]}
+    ]
+
+    for {script, args} <- @values do
+      @tag args: args, script: script
+      test "#{script}", %{args: args, script: script} do
+        assert {:ok, _} =
+                 DenoEx.run(Path.join(["test", "support", "#{script}.ts"]), args, allow_all: true)
+      end
+    end
+
+    test "read", %{path: path, content: content} do
+      assert {:ok, "#{content}\n"} ==
+               DenoEx.run("test/support/read_file.ts", [path], allow_all: true)
+    end
+
+    test "write" do
+      assert {:ok, "File written /tmp/test_file with hello\n"} ==
+               DenoEx.run("test/support/write_file.ts", ~w[/tmp/test_file hello], allow_all: true)
     end
   end
 end
