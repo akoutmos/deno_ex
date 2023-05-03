@@ -108,6 +108,10 @@ defmodule DenoEx do
                           true: allows all files to be read
                           [Path.t()]: A list of files that can be read
                           """
+                        ],
+                        allow_all: [
+                          type: :boolean,
+                          doc: "Turns on all options and bypasses all security measures"
                         ]
                       ]
                       |> NimbleOptions.new!()
