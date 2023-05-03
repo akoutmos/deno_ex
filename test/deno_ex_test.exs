@@ -205,4 +205,29 @@ defmodule DenoExTest do
     assert {:ok, "Hello, world.\n"} ==
              DenoEx.run("test/support/hello.ts", ~w[], allow_ffi: ~w[path/to/lib])
   end
+
+  describe "allow_run" do
+    test "errors when not allowed" do
+      assert {:error, error_message} = DenoEx.run("test/support/subprocess.ts", ~w[], [])
+      assert error_message =~ "PermissionDenied"
+
+      assert {:error, error_message} =
+               DenoEx.run("test/support/subprocess.ts", ~w[], allow_run: false)
+
+      assert error_message =~ "PermissionDenied"
+
+      assert {:error, error_message} =
+               DenoEx.run("test/support/subprocess.ts", ~w[], allow_run: ~w[ls])
+
+      assert error_message =~ "PermissionDenied"
+    end
+
+    test "when allowed" do
+      assert {:ok, "hello\n"} ==
+               DenoEx.run("test/support/subprocess.ts", ~w[], allow_run: true)
+
+      assert {:ok, "hello\n"} ==
+               DenoEx.run("test/support/subprocess.ts", ~w[], allow_run: ~w[echo])
+    end
+  end
 end
