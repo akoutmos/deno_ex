@@ -21,7 +21,7 @@ defmodule DenoEx do
                         ],
                         timeout: [
                           type: :pos_integer,
-                          default: 100,
+                          default: 5000,
                           doc:
                             "Timeout in milliseconds to wait for the script to run before aborting."
                         ],

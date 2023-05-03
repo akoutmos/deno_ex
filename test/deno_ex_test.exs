@@ -2,7 +2,7 @@ defmodule DenoExTest do
   use ExUnit.Case
   doctest DenoEx
 
-  setup_all [:ensure_deno_installed, :create_test_file]
+  setup_all :create_test_file
 
   def create_test_file(env) do
     tmp_dir = System.tmp_dir!()
@@ -18,16 +18,6 @@ defmodule DenoExTest do
     env
     |> Map.put(:path, path)
     |> Map.put(:content, content)
-  end
-
-  def ensure_deno_installed(env) do
-    deno_path = Path.join(DenoEx.executable_path(), "deno")
-
-    unless File.exists?(deno_path) do
-      DenoEx.DenoDownloader.install(DenoEx.executable_path(), 0o770)
-    end
-
-    {:ok, Map.put(env, :install_path, DenoEx.executable_path())}
   end
 
   test "works with no arguments" do
