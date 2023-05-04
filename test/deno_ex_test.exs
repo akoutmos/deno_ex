@@ -124,14 +124,14 @@ defmodule DenoExTest do
     test "full access", %{script: script} do
       {:ok, hostname} = :inet.gethostname()
 
-      assert {:ok, "#{hostname}.local\n"} ==
+      assert {:ok, "#{hostname}\n"} ==
                DenoEx.run(script, ~w[], allow_sys: true)
     end
 
     test "partial access", %{script: script} do
       {:ok, hostname} = :inet.gethostname()
 
-      assert {:ok, "#{hostname}.local\n"} ==
+      assert {:ok, "#{hostname}\n"} ==
                DenoEx.run(script, ~w[], allow_sys: ~w[hostname uid])
 
       assert {:error, error_message} = DenoEx.run(script, ~w[], allow_sys: ~w[uid])
