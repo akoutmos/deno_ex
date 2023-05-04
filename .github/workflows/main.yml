@@ -81,4 +81,5 @@ jobs:
         env:
           MIX_ENV: test
           SHELL: /bin/bash
-        run: mix coveralls.github
+        # run: mix coveralls.github
+        run: mix test
