@@ -7,6 +7,7 @@ defmodule Mix.Tasks.Compile.Deno do
   """
   use Mix.Task.Compiler
 
+  @impl true
   def run(_) do
     deno_path = Path.join(DenoEx.executable_location(), "deno")
 

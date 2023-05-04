@@ -1,4 +1,4 @@
-  defmodule DenoEx do
+defmodule DenoEx do
   @default_executable_location :deno_ex |> :code.priv_dir() |> Path.join("bin")
   @env_location_variable "DENO_LOCATION"
 
@@ -51,8 +51,7 @@
                         timeout: [
                           type: :pos_integer,
                           default: 5000,
-                          doc:
-                            "Timeout in milliseconds to wait for the script to run before aborting."
+                          doc: "Timeout in milliseconds to wait for the script to run before aborting."
                         ],
                         allow_env: [
                           type: {:or, [:boolean, list: :string]},
@@ -179,9 +178,9 @@
   @spec run(script, script_arguments, options) :: {:ok, String.t()} | {:error, term()}
   def run(script, script_args \\ [], options \\ []) do
     with {:ok, options} <- NimbleOptions.validate(options, @run_options_schema),
-         {exec_location, deno_options} =
+         {exec_location, deno_options} <-
            Keyword.pop(options, :deno_location, executable_location()),
-         {timeout, deno_options} = Keyword.pop(deno_options, :timeout) do
+         {timeout, deno_options} <- Keyword.pop(deno_options, :timeout) do
       deno_options = Enum.map(deno_options, &to_command_line_option/1)
 
       {:ok, pid, os_pid} =
