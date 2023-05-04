@@ -123,16 +123,19 @@ defmodule DenoExTest do
 
     test "full access", %{script: script} do
       {:ok, hostname} = :inet.gethostname()
+      hostname = hostname |> to_string() |> String.replace_trailing(".local", "")
 
-      assert {:ok, "#{hostname}\n"} ==
-               DenoEx.run(script, ~w[], allow_sys: true)
+      assert {:ok, message} = DenoEx.run(script, ~w[], allow_sys: true)
+
+      assert message =~ hostname
     end
 
     test "partial access", %{script: script} do
       {:ok, hostname} = :inet.gethostname()
+      hostname = hostname |> to_string() |> String.replace_trailing(".local", "")
 
-      assert {:ok, "#{hostname}\n"} ==
-               DenoEx.run(script, ~w[], allow_sys: ~w[hostname uid])
+      assert {:ok, message} = DenoEx.run(script, ~w[], allow_sys: ~w[hostname uid])
+      assert message =~ hostname
 
       assert {:error, error_message} = DenoEx.run(script, ~w[], allow_sys: ~w[uid])
 
