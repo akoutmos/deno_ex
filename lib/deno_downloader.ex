@@ -8,7 +8,8 @@ defmodule DenoEx.DenoDownloader do
     github_repo: "denoland/deno",
     download_versions: %{
       "1.33.1" => [
-        {:darwin, :arm64, "e4a531d061fa8151070a6323e35a23620d6889297b810b6424a5125842ecbb47"}
+        {:darwin, :arm64, "e4a531d061fa8151070a6323e35a23620d6889297b810b6424a5125842ecbb47"},
+        {:linux, :amd64, "dfe4f29aff4c885dd6196d7623f50c8aad9c1627be8bc9abe67e424aeb78f63e"}
       ]
     }
 
