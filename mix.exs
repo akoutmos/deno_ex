@@ -5,7 +5,7 @@ defmodule DenoEx.MixProject do
     [
       app: :deno_ex,
       version: project_version(),
-      elixir: "~> 1.14",
+      elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       docs: [
