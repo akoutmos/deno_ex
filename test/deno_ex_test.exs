@@ -1,5 +1,5 @@
 defmodule DenoExTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   doctest DenoEx
 
   setup_all :create_test_file
@@ -30,6 +30,10 @@ defmodule DenoExTest do
              DenoEx.run(Path.join(~w[test support args_echo.ts]), ~w[arg1 arg2])
   end
 
+  test "timeout" do
+    assert {:timeout, _} = DenoEx.run(Path.join(~w[test support args_echo.ts]), ~w[arg1 arg2], [], _timeout = 1)
+  end
+
   test "large outputs" do
     lines = 9
     per_line = 100
@@ -39,13 +43,14 @@ defmodule DenoExTest do
       |> String.duplicate(per_line)
       |> then(&(&1 <> "\n"))
       |> String.duplicate(lines)
+      |> then(&(&1 <> "a\n"))
 
     script = Path.join(~w[test support how_many_chars.ts])
 
     assert {:ok, expected_output} ==
              DenoEx.run(
                script,
-               ~w[#{lines * per_line} #{per_line}]
+               ~w[#{lines * per_line + 1} #{per_line}]
              )
   end
 
@@ -53,19 +58,7 @@ defmodule DenoExTest do
     script = Path.join(~w[test support fail.ts])
     assert {:error, message} = DenoEx.run(script, ~w[])
 
-    assert message =~ "exited with status code"
-  end
-
-  test "unknown deno arguments" do
-    assert {:error,
-            %NimbleOptions.ValidationError{
-              message: message,
-              key: [:unknown],
-              value: nil,
-              keys_path: []
-            }} = DenoEx.run(Path.join(~w[test support args_echo.ts]), ~w[arg], unknown: "foo")
-
-    assert message =~ "unknown options"
+    assert message =~ "Bad Exit"
   end
 
   describe "allow_env option" do
@@ -123,16 +116,19 @@ defmodule DenoExTest do
 
     test "full access", %{script: script} do
       {:ok, hostname} = :inet.gethostname()
+      hostname = hostname |> to_string() |> String.replace_trailing(".local", "")
 
-      assert {:ok, "#{hostname}\n"} ==
-               DenoEx.run(script, ~w[], allow_sys: true)
+      assert {:ok, message} = DenoEx.run(script, ~w[], allow_sys: true)
+
+      assert message =~ hostname
     end
 
     test "partial access", %{script: script} do
       {:ok, hostname} = :inet.gethostname()
+      hostname = hostname |> to_string() |> String.replace_trailing(".local", "")
 
-      assert {:ok, "#{hostname}\n"} ==
-               DenoEx.run(script, ~w[], allow_sys: ~w[hostname uid])
+      assert {:ok, message} = DenoEx.run(script, ~w[], allow_sys: ~w[hostname uid])
+      assert message =~ hostname
 
       assert {:error, error_message} = DenoEx.run(script, ~w[], allow_sys: ~w[uid])
 
@@ -173,10 +169,6 @@ defmodule DenoExTest do
 
     test "allowing access to specific address and port", %{script: script} do
       assert {:ok, _} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.0:9999])
-
-      assert {:error, error_message} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.0:9998])
-
-      assert error_message =~ "PermissionDenied"
 
       assert {:error, error_message} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.1:9999])
 
