@@ -28,6 +28,7 @@ defmodule Mix.Tasks.DenoEx.Install do
     #{NimbleOptions.docs(@options_schema)}
   """
 
+  @impl true
   def run(args) do
     {:ok, options} =
       args
@@ -35,9 +36,7 @@ defmodule Mix.Tasks.DenoEx.Install do
       |> elem(0)
       |> NimbleOptions.validate(@options_schema)
 
-    Mix.shell().info(
-      "Installing Deno to #{options[:path]} and setting permissions to #{options[:chmod]}"
-    )
+    Mix.shell().info("Installing Deno to #{options[:path]} and setting permissions to #{options[:chmod]}")
 
     DenoEx.DenoDownloader.install(options[:path], options[:chmod] |> Integer.parse(8) |> elem(0))
   end

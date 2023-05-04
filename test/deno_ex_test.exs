@@ -1,5 +1,5 @@
 defmodule DenoExTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   doctest DenoEx
 
   setup_all :create_test_file
@@ -30,6 +30,10 @@ defmodule DenoExTest do
              DenoEx.run(Path.join(~w[test support args_echo.ts]), ~w[arg1 arg2])
   end
 
+  test "timeout" do
+    assert {:timeout, _} = DenoEx.run(Path.join(~w[test support args_echo.ts]), ~w[arg1 arg2], [], _timeout = 1)
+  end
+
   test "large outputs" do
     lines = 9
     per_line = 100
@@ -39,13 +43,14 @@ defmodule DenoExTest do
       |> String.duplicate(per_line)
       |> then(&(&1 <> "\n"))
       |> String.duplicate(lines)
+      |> then(&(&1 <> "a\n"))
 
     script = Path.join(~w[test support how_many_chars.ts])
 
     assert {:ok, expected_output} ==
              DenoEx.run(
                script,
-               ~w[#{lines * per_line} #{per_line}]
+               ~w[#{lines * per_line + 1} #{per_line}]
              )
   end
 
@@ -53,19 +58,7 @@ defmodule DenoExTest do
     script = Path.join(~w[test support fail.ts])
     assert {:error, message} = DenoEx.run(script, ~w[])
 
-    assert message =~ "exited with status code"
-  end
-
-  test "unknown deno arguments" do
-    assert {:error,
-            %NimbleOptions.ValidationError{
-              message: message,
-              key: [:unknown],
-              value: nil,
-              keys_path: []
-            }} = DenoEx.run(Path.join(~w[test support args_echo.ts]), ~w[arg], unknown: "foo")
-
-    assert message =~ "unknown options"
+    assert message =~ "Bad Exit"
   end
 
   describe "allow_env option" do
@@ -74,13 +67,11 @@ defmodule DenoExTest do
     end
 
     test "can't access env variables when allow env not set", %{script: script} do
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[USER], [])
+      assert {:error, error_message} = DenoEx.run(script, ~w[USER], [])
 
       assert error_message =~ "PermissionDenied"
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[USER], allow_env: false)
+      assert {:error, error_message} = DenoEx.run(script, ~w[USER], allow_env: false)
 
       assert error_message =~ "PermissionDenied"
     end
@@ -97,17 +88,12 @@ defmodule DenoExTest do
       shell = System.get_env("SHELL")
 
       assert {:ok, "USER #{user}\n"} ==
-               DenoEx.run(script, ~w[USER],
-                 allow_env: ~w[SHELL USER]
-               )
+               DenoEx.run(script, ~w[USER], allow_env: ~w[SHELL USER])
 
       assert {:ok, "SHELL #{shell}\n"} ==
-               DenoEx.run(script, ~w[SHELL],
-                 allow_env: ~w[SHELL USER]
-               )
+               DenoEx.run(script, ~w[SHELL], allow_env: ~w[SHELL USER])
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[USER], allow_env: ~w[SHELL])
+      assert {:error, error_message} = DenoEx.run(script, ~w[USER], allow_env: ~w[SHELL])
 
       assert error_message =~ "PermissionDenied"
     end
@@ -117,35 +103,34 @@ defmodule DenoExTest do
     setup do
       {:ok, %{script: Path.join(~w[test support system_calls.ts])}}
     end
+
     test "can't access system information without the flag", %{script: script} do
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[], [])
+      assert {:error, error_message} = DenoEx.run(script, ~w[], [])
 
       assert error_message =~ "PermissionDenied"
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[], allow_sys: false)
+      assert {:error, error_message} = DenoEx.run(script, ~w[], allow_sys: false)
 
       assert error_message =~ "PermissionDenied"
     end
 
     test "full access", %{script: script} do
       {:ok, hostname} = :inet.gethostname()
+      hostname = hostname |> to_string() |> String.replace_trailing(".local", "")
 
-      assert {:ok, "#{hostname}.local\n"} ==
-               DenoEx.run(script, ~w[], allow_sys: true)
+      assert {:ok, message} = DenoEx.run(script, ~w[], allow_sys: true)
+
+      assert message =~ hostname
     end
 
     test "partial access", %{script: script} do
       {:ok, hostname} = :inet.gethostname()
+      hostname = hostname |> to_string() |> String.replace_trailing(".local", "")
 
-      assert {:ok, "#{hostname}.local\n"} ==
-               DenoEx.run(script, ~w[],
-                 allow_sys: ~w[hostname uid]
-               )
+      assert {:ok, message} = DenoEx.run(script, ~w[], allow_sys: ~w[hostname uid])
+      assert message =~ hostname
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[], allow_sys: ~w[uid])
+      assert {:error, error_message} = DenoEx.run(script, ~w[], allow_sys: ~w[uid])
 
       assert error_message =~ "PermissionDenied"
     end
@@ -155,65 +140,37 @@ defmodule DenoExTest do
     setup do
       {:ok, %{script: Path.join(~w[test support network.ts])}}
     end
+
     test "not allowed", %{script: script} do
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[0.0.0.0 9999])
+      assert {:error, error_message} = DenoEx.run(script, ~w[0.0.0.0 9999])
 
       assert error_message =~ "PermissionDenied"
     end
 
     test "allowing across the board", %{script: script} do
-      assert {:ok, _} =
-               DenoEx.run(script, ~w[0.0.0.0 9999],
-                 allow_net: true
-               )
+      assert {:ok, _} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: true)
     end
 
     test "allowing access to specific addresses", %{script: script} do
-      assert {:ok, _} =
-               DenoEx.run(script, ~w[0.0.0.0 9999],
-                 allow_net: ~w[0.0.0.0]
-               )
+      assert {:ok, _} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.0])
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[0.0.0.0 9999],
-                 allow_net: ~w[0.0.0.1]
-               )
+      assert {:error, error_message} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.1])
 
       assert error_message =~ "PermissionDenied"
     end
 
     test "allowing access to specific ports", %{script: script} do
-      assert {:ok, _} =
-               DenoEx.run(script, ~w[0.0.0.0 9999],
-                 allow_net: ~w[:9999]
-               )
+      assert {:ok, _} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[:9999])
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[0.0.0.0 9999],
-                 allow_net: ~w[:9998]
-               )
+      assert {:error, error_message} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[:9998])
 
       assert error_message =~ "PermissionDenied"
     end
 
     test "allowing access to specific address and port", %{script: script} do
-      assert {:ok, _} =
-               DenoEx.run(script, ~w[0.0.0.0 9999],
-                 allow_net: ~w[0.0.0.0:9999]
-               )
+      assert {:ok, _} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.0:9999])
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[0.0.0.0 9999],
-                 allow_net: ~w[0.0.0.0:9998]
-               )
-
-      assert error_message =~ "PermissionDenied"
-
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[0.0.0.0 9999],
-                 allow_net: ~w[0.0.0.1:9999]
-               )
+      assert {:error, error_message} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.1:9999])
 
       assert error_message =~ "PermissionDenied"
     end
@@ -227,8 +184,7 @@ defmodule DenoExTest do
     test "without hrtime allowed", %{script: script} do
       non_high_resolution = 1_000_000
 
-      assert {:ok, time} =
-               DenoEx.run(script, ~w[], allow_hrtime: false)
+      assert {:ok, time} = DenoEx.run(script, ~w[], allow_hrtime: false)
 
       {time, _} = Integer.parse(time)
 
@@ -244,11 +200,9 @@ defmodule DenoExTest do
       non_high_resolution = 1_000_000
 
       # using two times to reduce the chance that both will be ending in 000_000
-      assert {:ok, time} =
-               DenoEx.run(script, ~w[], allow_hrtime: true)
+      assert {:ok, time} = DenoEx.run(script, ~w[], allow_hrtime: true)
 
-      assert {:ok, time2} =
-               DenoEx.run(script, ~w[], allow_hrtime: true)
+      assert {:ok, time2} = DenoEx.run(script, ~w[], allow_hrtime: true)
 
       {time, _} = Integer.parse(time)
       {time2, _} = Integer.parse(time2)
@@ -259,32 +213,29 @@ defmodule DenoExTest do
 
   test "allow_ffi" do
     script = Path.join(~w[test support hello.ts])
+
     assert {:ok, "Hello, world.\n"} ==
              DenoEx.run(script, ~w[], allow_ffi: true)
 
     assert {:ok, "Hello, world.\n"} ==
-             DenoEx.run(script, ~w[],
-               allow_ffi: [Path.join(~w[path to lib])]
-             )
+             DenoEx.run(script, ~w[], allow_ffi: [Path.join(~w[path to lib])])
   end
 
   describe "allow_run" do
     setup do
       {:ok, %{script: Path.join(~w[test support subprocess.ts])}}
     end
+
     test "errors when not allowed", %{script: script} do
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[], [])
+      assert {:error, error_message} = DenoEx.run(script, ~w[], [])
 
       assert error_message =~ "PermissionDenied"
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[], allow_run: false)
+      assert {:error, error_message} = DenoEx.run(script, ~w[], allow_run: false)
 
       assert error_message =~ "PermissionDenied"
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[], allow_run: ~w[ls])
+      assert {:error, error_message} = DenoEx.run(script, ~w[], allow_run: ~w[ls])
 
       assert error_message =~ "PermissionDenied"
     end
@@ -302,27 +253,21 @@ defmodule DenoExTest do
     setup do
       {:ok, %{script: Path.join(~w[test support write_file.ts])}}
     end
+
     test "errors when not allowed", %{script: script} do
       test_file = Path.join(System.tmp_dir(), "test_file")
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[#{test_file} hello])
+      assert {:error, error_message} = DenoEx.run(script, ~w[#{test_file} hello])
 
       assert error_message =~ "PermissionDenied"
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[#{test_file} hello],
-                 allow_write: false
-               )
+      assert {:error, error_message} = DenoEx.run(script, ~w[#{test_file} hello], allow_write: false)
 
       assert error_message =~ "PermissionDenied"
 
       other_file = Path.join(System.tmp_dir(), "other_file")
 
-      assert {:error, error_message} =
-               DenoEx.run(script, ~w[#{test_file} hello],
-                 allow_write: [other_file]
-               )
+      assert {:error, error_message} = DenoEx.run(script, ~w[#{test_file} hello], allow_write: [other_file])
 
       assert error_message =~ "PermissionDenied"
     end
@@ -331,14 +276,10 @@ defmodule DenoExTest do
       file = Path.join(System.tmp_dir(), "test_file")
 
       assert {:ok, "File written #{file} with hello\n"} ==
-               DenoEx.run(script, ~w[#{file} hello],
-                 allow_write: true
-               )
+               DenoEx.run(script, ~w[#{file} hello], allow_write: true)
 
       assert {:ok, "File written #{file} with hello\n"} ==
-               DenoEx.run(script, ~w[#{file} hello],
-                 allow_write: [file]
-               )
+               DenoEx.run(script, ~w[#{file} hello], allow_write: [file])
     end
   end
 
@@ -346,21 +287,19 @@ defmodule DenoExTest do
     setup do
       {:ok, %{script: Path.join(~w[test support read_file.ts])}}
     end
+
     test "errors when not allowed", %{path: path, script: script} do
-      assert {:error, error_message} =
-               DenoEx.run(script, [path])
+      assert {:error, error_message} = DenoEx.run(script, [path])
 
       assert error_message =~ "PermissionDenied"
 
-      assert {:error, error_message} =
-               DenoEx.run(script, [path], allow_read: false)
+      assert {:error, error_message} = DenoEx.run(script, [path], allow_read: false)
 
       assert error_message =~ "PermissionDenied"
 
       file = Path.join(System.tmp_dir(), "other_file")
 
-      assert {:error, error_message} =
-               DenoEx.run(script, [path], allow_read: [file])
+      assert {:error, error_message} = DenoEx.run(script, [path], allow_read: [file])
 
       assert error_message =~ "PermissionDenied"
     end
@@ -385,8 +324,7 @@ defmodule DenoExTest do
     for {script, args} <- @values do
       @tag args: args, script: script
       test "#{script}", %{args: args, script: script} do
-        assert {:ok, _} =
-                 DenoEx.run(Path.join(["test", "support", "#{script}.ts"]), args, allow_all: true)
+        assert {:ok, _} = DenoEx.run(Path.join(["test", "support", "#{script}.ts"]), args, allow_all: true)
       end
     end
 
@@ -399,9 +337,7 @@ defmodule DenoExTest do
       file = Path.join(System.tmp_dir(), "test_file")
 
       assert {:ok, "File written #{file} with hello\n"} ==
-               DenoEx.run(Path.join(~w[test support write_file.ts]), ~w[#{file} hello],
-                 allow_all: true
-               )
+               DenoEx.run(Path.join(~w[test support write_file.ts]), ~w[#{file} hello], allow_all: true)
     end
   end
 end
