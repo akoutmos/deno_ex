@@ -1,23 +1,52 @@
-defmodule DenoEx do
+  defmodule DenoEx do
+  @default_executable_location :deno_ex |> :code.priv_dir() |> Path.join("bin")
+  @env_location_variable "DENO_LOCATION"
+
   @moduledoc """
-  DenoEx is used to run javascript and typescript
-  files in a safe environment.
+  DenoEx is used to run javascript and typescript files in a safe environment by utilizing
+  [Deno](https://deno.com/runtime).
+
+  ## Basics
+
+  ## Configuration
+
+  Configuration of the deno installation directory can be set in a few ways. We can use an
+  environment variable, application config, or pass it directly to the run command. The
+  different configurations are there to facilitate different working situations. The
+  priorities are `function options` > `application configuration` > `environment`.
+
+  ### Function Option
+
+       iex> DenoEx.run(Path.join(~w[test support hello.ts]), [], [deno_location: "#{@default_executable_location}"])
+       {:ok, "Hello, world.#{"\\n"}"}
+
+  ## Application Configuration
+
+       import Config
+
+       config :deno_ex,
+         exectutable_location: Path.join(~w[path containing deno])
+
+  ## ENV Variable
+
+    `#{@env_location_variable}=path`
   """
 
-  @type script() :: String.t()
-  @type script_arguments() :: [String.t()]
-  @type options() :: keyword()
-
-  @default_executable_path Application.compile_env(
-                             :deno_ex,
-                             :default_exectutable_path,
-                             :deno_ex |> :code.priv_dir() |> Path.join("bin")
-                           )
+  @executable_location Application.compile_env(
+                         :deno_ex,
+                         :exectutable_location,
+                         @default_executable_location
+                       )
 
   @run_options_schema [
-                        deno_path: [
+                        deno_location: [
                           type: :string,
-                          doc: "the path where the deno executable is installed."
+                          doc: """
+                          Sets the path where the deno executable is located.
+
+                          Note: It does not include the deno executable. If the executable is located at
+                          `/usr/bin/deno` then the `deno_location` should be `/usr/bin`.
+                          """
                         ],
                         timeout: [
                           type: :pos_integer,
@@ -30,18 +59,20 @@ defmodule DenoEx do
                           doc: """
                           Allows read and write access to environment variables.
 
-                          true: allows full access to the environment variables
-                          [String.t()]: allows access to only the subset of variables in the list.
+                          `true`: allows full access to the environment variables
+
+                          `[String.t()]`: allows access to only the subset of variables in the list.
                           """
                         ],
                         allow_sys: [
                           type: {:or, [:boolean, list: :string]},
                           doc: """
                           Allows access to APIs that provide system information.
-                          ie. hostname, memory usage
+                          i.e. hostname, memory usage
 
-                          true: allows full access
-                          [String.t()]: allows access to only the subset calls.
+                          `true`: allows full access
+
+                          `[String.t()]`: allows access to only the subset calls.
                           hostname, osRelease, osUptime, loadavg, networkInterfaces,
                           systemMemoryInfo, uid, and gid
                           """
@@ -51,15 +82,16 @@ defmodule DenoEx do
                           doc: """
                           Allows network access.
 
-                          true: allows full access to network
-                          [String.t()]: allows access to only the network connections specified
+                          `true`: allows full access to the network
+
+                          `[String.t()]`: allows access to only the network connections specified
                           ie. 127.0.0.1:4000, 127.0.0.1, :4001
                           """
                         ],
                         allow_hrtime: [
                           type: :boolean,
                           doc: """
-                          Allow high-resolution time measurement. High-resolution time can be used in timing attacks and fingerprinting.
+                          Allows high-resolution time measurement. High-resolution time can be used in timing attacks and fingerprinting.
                           """
                         ],
                         allow_ffi: [
@@ -71,10 +103,11 @@ defmodule DenoEx do
 
                           Be aware that dynamic libraries are not run in a sandbox and therefore
                           do not have the same security restrictions as the Deno process.
-                          Therefore, use with caution.
+                          Therefore, use it with caution.
 
-                          true: allows all dlls to be accessed
-                          [Path.t()]: A list of paths to dlls that will be accesible
+                          `true`: allows all dlls to be accessed
+
+                          `[Path.t()]`: A list of paths to dlls that will be accessible
                           """
                         ],
                         allow_run: [
@@ -85,10 +118,11 @@ defmodule DenoEx do
                           ## WARNING
 
                           Be aware that subprocesses are not run in a sandbox and therefore do not have
-                          the same security restrictions as the Deno process. Therefore, use with caution.
+                          the same security restrictions as the Deno process. Therefore, use it with caution.
 
-                          true: allows all subprocesses to be run
-                          [Path.t()]: A list of subprocess to run
+                          `true`: allows all subprocesses to be run
+
+                          `[Path.t()]`: A list of subprocesses to run
                           """
                         ],
                         allow_write: [
@@ -96,8 +130,9 @@ defmodule DenoEx do
                           doc: """
                           Allow the ability to write files.
 
-                          true: allows all files to be written
-                          [Path.t()]: A list of files that can be written
+                          `true`: allows all files to be written
+
+                          `[Path.t()]`: A list of files that can be written
                           """
                         ],
                         allow_read: [
@@ -105,8 +140,9 @@ defmodule DenoEx do
                           doc: """
                           Allow the ability to read files.
 
-                          true: allows all files to be read
-                          [Path.t()]: A list of files that can be read
+                          `true`: allows all files to be read
+
+                          `[Path.t()]`: A list of files that can be read
                           """
                         ],
                         allow_all: [
@@ -115,6 +151,14 @@ defmodule DenoEx do
                         ]
                       ]
                       |> NimbleOptions.new!()
+
+  @typedoc "The path to the script"
+  @type script() :: Path.t()
+  @typedoc "The list of arguements to be passed to the script"
+  @type script_arguments() :: [String.t()]
+  @typedoc "The arguments for deno"
+  @type options() :: unquote(NimbleOptions.option_typespec(@run_options_schema))
+
   @doc """
   Uses `deno run` to run a Deno script.
 
@@ -122,27 +166,34 @@ defmodule DenoEx do
 
     #{NimbleOptions.docs(@run_options_schema)}
 
-    Please refere to [Deno Permissions](https://deno.com/manual@v1.33.1/basics/permissions) for more details.
+    Please refer to [Deno Permissions](https://deno.com/manual@v1.33.1/basics/permissions) for more details.
+
+  ## Examples
+
+       iex> DenoEx.run(Path.join(~w[test support hello.ts]))
+       {:ok, "Hello, world.#{"\\n"}"}
+
+       iex> DenoEx.run(Path.join(~w[test support args_echo.ts]), ~w[foo bar])
+       {:ok, "foo bar#{"\\n"}"}
   """
   @spec run(script, script_arguments, options) :: {:ok, String.t()} | {:error, term()}
   def run(script, script_args \\ [], options \\ []) do
     with {:ok, options} <- NimbleOptions.validate(options, @run_options_schema),
-         {exec_path, deno_options} = Keyword.pop(options, :deno_path, executable_path()),
+         {exec_location, deno_options} =
+           Keyword.pop(options, :deno_location, executable_location()),
          {timeout, deno_options} = Keyword.pop(deno_options, :timeout) do
       deno_options = Enum.map(deno_options, &to_command_line_option/1)
 
-      deno_path =
+      {:ok, pid, os_pid} =
         [
-          "#{exec_path}/deno run",
+          Path.join(exec_location, "deno"),
+          "run",
           deno_options,
           script,
           script_args
         ]
         |> List.flatten()
         |> Enum.join(" ")
-
-      {:ok, pid, os_pid} =
-        deno_path
         |> :exec.run([:stdout, :stderr, :monitor])
 
       # Initial state for reduce
@@ -191,8 +242,12 @@ defmodule DenoEx do
     end
   end
 
-  def executable_path do
-    System.get_env("DENO_PATH", @default_executable_path)
+  @doc """
+  Returns the location where the deno script is expected to be located.
+  """
+  @spec executable_location() :: binary()
+  def executable_location do
+    System.get_env(@env_location_variable, @executable_location)
   end
 
   defp to_command_line_option({option, true}) do

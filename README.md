@@ -1,4 +1,4 @@
-  # DenoEx
+# DenoEx
 
 DenoEx is designed to make it simple to run scripts using
 [Deno](https://deno.com/runtime) from your Elixir applications. Deno is a modern
@@ -21,9 +21,16 @@ end
 
 ## Installing the Runtime
 
-Once you have DenoEX, you will need the Deno runtime. We have created a mix task
+By defualt Deno will automatically be installed in the package's `priv` directory
+as part of the compilation process. If you would like the build to place deno in
+a different directory you may configure it. See the "Configuration" section of
+`DenoEx`.
+
+## Using DenoEx to Install Copies of the Runtime
+
+Once you have DenoEx, you will need the Deno runtime. We have created a mix task
 that you can use to install Deno. By default, Deno will be installed in the
-directory where the mix task is evaluated.
+`priv` directory for the `deno_ex` dependency. `my_project/_build/dev/lib/deno_ex/priv/bin`
 
   `mix deno_ex.install`
 
