@@ -219,9 +219,9 @@ defmodule DenoEx do
               existing_errors = Map.get(acc, :stderr, [])
               {:cont, Map.put(acc, :stderr, [error | existing_errors])}
 
-            {:stdout, ^os_pid, compiled_template_fragment} ->
-              aggregated_template = Map.get(acc, :stdout, "")
-              {:cont, Map.put(acc, :stdout, aggregated_template <> compiled_template_fragment)}
+            {:stdout, ^os_pid, script_output_fragment} ->
+              aggregated_output = Map.get(acc, :stdout, "")
+              {:cont, Map.put(acc, :stdout, aggregated_output <> script_output_fragment)}
           after
             timeout ->
               :exec.kill(os_pid, :sigterm)
@@ -232,8 +232,8 @@ defmodule DenoEx do
         end)
 
       case result do
-        %{stderr: [], stdout: compiled_template} ->
-          {:ok, compiled_template}
+        %{stderr: [], stdout: script_output} ->
+          {:ok, script_output}
 
         %{stderr: errors} ->
           {:error, Enum.join(errors, "\n")}
