@@ -75,7 +75,7 @@ permissions are `0x770`.
 
 ## Supporting DenoEx
 
-If you rely on this library to generate awesome looking emails for your application, it would much appreciated
+If you rely on this library to run TypeScript and Javascript within your application, it would much appreciated
 if you can give back to the project in order to help ensure its continued development.
 
 Checkout my [GitHub Sponsorship page](https://github.com/sponsors/akoutmos) if you want to help out!
