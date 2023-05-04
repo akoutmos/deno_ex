@@ -195,49 +195,51 @@ defmodule DenoEx do
         |> Enum.join(" ")
         |> :exec.run([:stdout, :stderr, :monitor])
 
-      # Initial state for reduce
-      initial_reduce_results = %{
-        stdout: "",
-        stderr: []
-      }
-
-      result =
-        [nil]
-        |> Stream.cycle()
-        |> Enum.reduce_while(initial_reduce_results, fn _, acc ->
+      Stream.iterate(
+        %{
+          stdout: "",
+          stderr: [],
+          halt: false
+        },
+        fn acc ->
           receive do
             {:DOWN, ^os_pid, _, ^pid, {:exit_status, exit_status}} when exit_status != 0 ->
               error = "Deno script exited with status code #{inspect(exit_status)}\n"
               existing_errors = Map.get(acc, :stderr, [])
-              {:halt, Map.put(acc, :stderr, [error | existing_errors])}
+
+              Map.put(acc, :stderr, [error | existing_errors])
+              |> Map.put(:halt, true)
 
             {:DOWN, ^os_pid, _, ^pid, :normal} ->
-              {:halt, acc}
+              Map.put(acc, :halt, true)
 
             {:stderr, ^os_pid, error} ->
               error = String.trim(error)
               existing_errors = Map.get(acc, :stderr, [])
-              {:cont, Map.put(acc, :stderr, [error | existing_errors])}
+              Map.put(acc, :stderr, [error | existing_errors])
 
             {:stdout, ^os_pid, compiled_template_fragment} ->
               aggregated_template = Map.get(acc, :stdout, "")
-              {:cont, Map.put(acc, :stdout, aggregated_template <> compiled_template_fragment)}
+              Map.put(acc, :stdout, aggregated_template <> compiled_template_fragment)
           after
             timeout ->
               :exec.kill(os_pid, :sigterm)
               error = "Deno script timed out after #{timeout} millisecond(s)"
               existing_errors = Map.get(acc, :stderr, [])
-              {:halt, Map.put(acc, :stderr, [error | existing_errors])}
-          end
-        end)
 
-      case result do
+              Map.put(acc, :stderr, [error | existing_errors])
+              |> Map.put(:halt, true)
+          end
+        end
+      )
+      |> Enum.find(fn x -> x.halt end)
+      |> then(fn
         %{stderr: [], stdout: compiled_template} ->
           {:ok, compiled_template}
 
         %{stderr: errors} ->
           {:error, Enum.join(errors, "\n")}
-      end
+      end)
     end
   end
 

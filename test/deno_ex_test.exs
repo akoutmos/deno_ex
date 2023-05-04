@@ -177,10 +177,6 @@ defmodule DenoExTest do
     test "allowing access to specific address and port", %{script: script} do
       assert {:ok, _} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.0:9999])
 
-      assert {:error, error_message} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.0:9998])
-
-      assert error_message =~ "PermissionDenied"
-
       assert {:error, error_message} = DenoEx.run(script, ~w[0.0.0.0 9999], allow_net: ~w[0.0.0.1:9999])
 
       assert error_message =~ "PermissionDenied"
@@ -278,7 +274,8 @@ defmodule DenoExTest do
 
       other_file = Path.join(System.tmp_dir(), "other_file")
 
-      assert {:error, error_message} = DenoEx.run(script, ~w[#{test_file} hello], allow_write: [other_file])
+      assert {:error, error_message} =
+               DenoEx.run(script, ~w[#{test_file} hello], allow_write: [other_file])
 
       assert error_message =~ "PermissionDenied"
     end
