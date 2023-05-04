@@ -1,4 +1,3 @@
-
 defmodule DenoEx do
   @default_executable_location :deno_ex |> :code.priv_dir() |> Path.join("bin")
   @env_location_variable "DENO_LOCATION"
@@ -90,4 +89,3 @@ defmodule DenoEx do
     System.get_env(@env_location_variable, @executable_location)
   end
 end
-
