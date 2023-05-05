@@ -202,10 +202,6 @@ defmodule DenoEx.Pipe do
 
   While running a `Deno.Pipe` sends messages back to the calling process.
 
-  ## Messages
-
-    {:stderr, "error"}
-
   ## Examples
 
        iex> DenoEx.Pipe.new(Path.join(~w[test support hello.ts])) |> DenoEx.Pipe.run()

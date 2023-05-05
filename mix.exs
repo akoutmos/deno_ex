@@ -8,10 +8,7 @@ defmodule DenoEx.MixProject do
       elixir: "~> 1.13",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      docs: [
-        main: "readme",
-        extras: ["README.md"]
-      ],
+      docs: docs(),
       compilers: Mix.compilers() ++ [:deno],
       name: "DenoEx",
       source_url: "https://github.com/akoutmos/deno_ex",
