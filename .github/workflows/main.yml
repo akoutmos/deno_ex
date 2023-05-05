@@ -32,11 +32,27 @@ jobs:
       - name: Install dependencies
         run: mix deps.get
       - name: Restore PLT cache
-        uses: actions/cache@v2
+        id: plt_cache
+        uses: actions/cache/restore@v3
         with:
-          path: priv/plts
-          key: ${{ runner.os }}-mix-v2-${{ hashFiles('**/mix.lock') }}
-          restore-keys: ${{ runner.os }}-mix-v2-
+          key: |
+            ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-plt
+          restore-keys: |
+            ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-plt
+          path: |
+            priv/plts
+      - name: Create PLTs
+        if: steps.plt_cache.outputs.cache-hit != 'true'
+        run: mix dialyzer --plt
+      - name: Save PLT cache
+        id: plt_cache_save
+        uses: actions/cache/save@v3
+        if: steps.plt_cache.outputs.cache-hit != 'true'
+        with:
+          key: |
+            ${{ runner.os }}-${{ steps.beam.outputs.elixir-version }}-${{ steps.beam.outputs.otp-version }}-plt
+          path: |
+            priv/plts
       - name: Mix Formatter
         run: mix format --check-formatted
       - name: Check for compiler warnings
@@ -45,6 +61,10 @@ jobs:
         run: mix credo --strict
       - name: Doctor documentation checks
         run: mix doctor
+      - name: Gradualizer static type checker
+        run: mix gradient
+      - name: Dialyzer checks
+        run: mix dialyzer
 
   unit_test:
     name: Run ExUnit tests

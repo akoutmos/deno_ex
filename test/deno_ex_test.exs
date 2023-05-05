@@ -25,6 +25,14 @@ defmodule DenoExTest do
              DenoEx.run(Path.join(~w[test support hello.ts]))
   end
 
+  test "works with no arguments when script is passed via STDIN" do
+    script = """
+    console.log("Hello, world.")
+    """
+
+    assert {:ok, "Hello, world.\n"} == DenoEx.run({:stdin, script})
+  end
+
   test "can pass script arguments" do
     assert {:ok, "arg1 arg2\n"} ==
              DenoEx.run(Path.join(~w[test support args_echo.ts]), ~w[arg1 arg2])

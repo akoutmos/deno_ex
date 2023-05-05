@@ -1,0 +1,50 @@
+# OCR With Tesseract
+
+```elixir
+Mix.install([
+  {:kino, "0.9.3"},
+  {:deno_ex, path: "/Users/akoutmos/Documents/opensource/deno_ex"}
+])
+```
+
+## TypeScript code
+
+```elixir
+form = Kino.Control.form([file: Kino.Input.file("File")], submit: "Process image")
+```
+
+```elixir
+typescript_code = fn path ->
+  {
+    :stdin,
+    """
+    import { recognize } from "https://deno.land/x/tesseract/mod.ts";
+
+    const output = await recognize("#{path}");
+    console.log(output);
+    """
+  }
+end
+
+frame = Kino.Frame.new()
+
+form
+|> Kino.Control.stream()
+|> Kino.listen(fn event ->
+  path = Kino.Input.file_path(event.data.file.file_ref)
+
+  image = path |> File.read!() |> Kino.Image.new(:png)
+
+  {:ok, content} =
+    path
+    |> typescript_code.()
+    |> DenoEx.run([], allow_run: true)
+
+  ocr_result = String.trim(content) |> Kino.Markdown.new()
+
+  render_result = Kino.Layout.grid([image, ocr_result], columns: 2)
+  Kino.Frame.render(frame, render_result)
+end)
+
+frame
+```

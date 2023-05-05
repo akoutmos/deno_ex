@@ -1,6 +1,7 @@
 defmodule DenoEx do
   @default_executable_location :deno_ex |> :code.priv_dir() |> Path.join("bin")
   @env_location_variable "DENO_LOCATION"
+
   alias DenoEx.Pipe
 
   @moduledoc """
@@ -39,10 +40,15 @@ defmodule DenoEx do
                          @default_executable_location
                        )
 
-  @typedoc "The path to the script"
-  @type script() :: Path.t()
+  @typedoc """
+  The path to the script that should be executed, or a tuple denoting
+  what should be passed to the Deno executable over STDIN.
+  """
+  @type script() :: Path.t() | {:stdin, String.t()}
+
   @typedoc "The list of arguements to be passed to the script"
   @type script_arguments() :: [String.t()]
+
   @typedoc "The arguments for deno"
   @type options() :: Pipe.t()
 
@@ -63,7 +69,7 @@ defmodule DenoEx do
        iex> DenoEx.run(Path.join(~w[test support args_echo.ts]), ~w[foo bar])
        {:ok, "foo bar#{"\\n"}"}
   """
-  @spec run(script, script_arguments, options, timeout) :: {:ok | :error, String.t()}
+  @spec run(script(), script_arguments(), options(), timeout()) :: {:ok | :error, String.t()}
   def run(script, script_arguments \\ [], options \\ [], timeout \\ :timer.seconds(5)) do
     script
     |> Pipe.new(script_arguments, options)

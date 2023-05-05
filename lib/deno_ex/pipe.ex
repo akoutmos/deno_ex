@@ -131,6 +131,7 @@ defmodule DenoEx.Pipe do
             os_pid: nil,
             stderr: [],
             stdout: [],
+            stdin: nil,
             status: :initialized
 
   @doc """
@@ -151,7 +152,31 @@ defmodule DenoEx.Pipe do
        #DenoEx.Pipe<status: :initialized, ...>
   """
   @spec new(DenoEx.script(), DenoEx.script_arguments(), options) :: t(:initialized) | {:error, String.t()}
-  def new(script, script_args \\ [], options \\ []) do
+  def new(script, script_args \\ [], options \\ [])
+
+  def new({:stdin, script}, script_args, options) do
+    with {:ok, options} <- NimbleOptions.validate(options, @run_options_schema),
+         {deno_location, deno_options} <-
+           Keyword.pop(options, :deno_location, DenoEx.executable_location()) do
+      deno_options = Enum.map(deno_options, &to_command_line_option/1)
+
+      %__MODULE__{
+        stdin: script,
+        command:
+          [
+            Path.join(deno_location, "deno"),
+            "run",
+            deno_options,
+            script_args,
+            "-"
+          ]
+          |> List.flatten()
+          |> Enum.join(" ")
+      }
+    end
+  end
+
+  def new(script, script_args, options) do
     with {:ok, options} <- NimbleOptions.validate(options, @run_options_schema),
          {deno_location, deno_options} <-
            Keyword.pop(options, :deno_location, DenoEx.executable_location()) do
@@ -179,7 +204,7 @@ defmodule DenoEx.Pipe do
 
   ## Messages
 
-    {:stderr, }
+    {:stderr, "error"}
 
   ## Examples
 
@@ -187,8 +212,17 @@ defmodule DenoEx.Pipe do
        #DenoEx.Pipe<status: :running, ...>
   """
   @spec run(t(status())) :: t(:running) | no_return()
-  def run(%__MODULE__{status: :initialized, command: command} = pipe) do
+  def run(%__MODULE__{status: :initialized, command: command, stdin: nil} = pipe) do
     {:ok, pid, os_pid} = :exec.run(command, [:stdout, :stderr, :monitor])
+
+    %{pipe | status: :running, pid: pid, os_pid: os_pid}
+  end
+
+  def run(%__MODULE__{status: :initialized, command: command, stdin: stdin} = pipe) do
+    {:ok, pid, os_pid} = :exec.run(command, [:stdout, :stderr, :monitor, :stdin])
+
+    :ok = :exec.send(pid, stdin)
+    :ok = :exec.send(pid, :eof)
 
     %{pipe | status: :running, pid: pid, os_pid: os_pid}
   end

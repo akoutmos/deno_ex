@@ -63,7 +63,10 @@ defmodule DenoEx.MixProject do
       main: "readme",
       source_ref: "master",
       logo: "guides/images/logo.svg",
-      extras: ["README.md"]
+      extras: ["README.md", "guides/examples/tesseract_ocr.livemd"],
+      groups_for_extras: [
+        "Example Livebooks": Path.wildcard("guides/examples/*.livemd")
+      ]
     ]
   end
 
@@ -79,7 +82,9 @@ defmodule DenoEx.MixProject do
       {:ex_doc, "~> 0.29.4", only: :dev},
       {:excoveralls, "~> 0.16.1", only: [:test, :dev], runtime: false},
       {:doctor, "~> 0.21.0", only: :dev},
-      {:credo, "~> 1.7.0", only: :dev}
+      {:credo, "~> 1.7.0", only: :dev},
+      {:gradient, github: "esl/gradient", only: [:dev], runtime: false},
+      {:dialyxir, "~> 1.3.0", only: :dev, runtime: false}
     ]
   end
 
