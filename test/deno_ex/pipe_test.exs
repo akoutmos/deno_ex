@@ -58,7 +58,7 @@ defmodule DenoEx.PipeTest do
   end
 
   test "timeout while yielding" do
-    assert {:timeout, %{status: {:exit, :timeout}}} =
+    assert {:timeout, %{status: :timeout}} =
              {:file, @script}
              |> Pipe.new(~w[arg], allow_env: ~w[USER SHELL])
              |> Pipe.run()

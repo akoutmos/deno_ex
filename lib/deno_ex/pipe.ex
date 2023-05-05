@@ -115,7 +115,7 @@ defmodule DenoEx.Pipe do
                       |> NimbleOptions.new!()
 
   @typedoc "status of the pipe"
-  @type status :: :initialized | :running | {:exited, :normal | :timeout | pos_integer()}
+  @type status :: :initialized | :running | {:exited, :normal | pos_integer()} | :timeout
 
   @typedoc "types of datastreams"
   @type datastream :: :stderr | :stdout
@@ -244,10 +244,10 @@ defmodule DenoEx.Pipe do
 
        iex> {:timeout, pipe} = DenoEx.Pipe.new({:file, Path.join(~w[test support hello.ts])}) |> DenoEx.Pipe.run() |> DenoEx.Pipe.yield(1)
        iex> pipe
-       #DenoEx.Pipe<status: {:exit, :timeout}, ...>
+       #DenoEx.Pipe<status: :timeout, ...>
   """
   @spec yield(t(:running), timeout()) ::
-          {:ok, t({:exit, :normal})} | {:error, t({:exit, pos_integer()})} | {:timeout, t({:exit, :timeout})}
+          {:ok, t({:exit, :normal})} | {:error, t({:exit, pos_integer()})} | {:timeout, t(:timeout)}
   def yield(%__MODULE__{status: :running} = pipe, timeout \\ :timer.seconds(5)) do
     pid = pipe.pid
     os_pid = pipe.os_pid
@@ -270,7 +270,7 @@ defmodule DenoEx.Pipe do
       after
         timeout ->
           :exec.kill(os_pid, :sigterm)
-          %{pipe | status: {:exit, :timeout}}
+          %{pipe | status: :timeout}
       end
     end)
     |> Enum.find(&finished?/1)
@@ -281,7 +281,7 @@ defmodule DenoEx.Pipe do
       %__MODULE__{status: {:exit, code}} = pipe when is_integer(code) ->
         {:error, pipe}
 
-      %__MODULE__{status: {:exit, :timeout}} = pipe ->
+      %__MODULE__{status: :timeout} = pipe ->
         {:timeout, pipe}
     end)
   end
