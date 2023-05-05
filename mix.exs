@@ -22,6 +22,10 @@ defmodule DenoEx.MixProject do
         "coveralls.html": :test,
         "coveralls.github": :test
       ],
+      dialyzer: [
+        plt_add_apps: [:erlexec, :octo_fetch, :mix],
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
+      ],
       package: package(),
       deps: deps(),
       docs: docs(),
