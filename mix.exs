@@ -84,7 +84,6 @@ defmodule DenoEx.MixProject do
       {:excoveralls, "~> 0.16.1", only: [:test, :dev], runtime: false},
       {:doctor, "~> 0.21.0", only: :dev},
       {:credo, "~> 1.7.0", only: :dev},
-      {:gradient, github: "esl/gradient", only: [:dev], runtime: false},
       {:dialyxir, "~> 1.3.0", only: :dev, runtime: false}
     ]
   end

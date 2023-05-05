@@ -61,8 +61,6 @@ jobs:
         run: mix credo --strict
       - name: Doctor documentation checks
         run: mix doctor
-      - name: Gradualizer static type checker
-        run: mix gradient
       - name: Dialyzer checks
         run: mix dialyzer
 

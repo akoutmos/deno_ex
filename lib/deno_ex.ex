@@ -68,6 +68,10 @@ defmodule DenoEx do
 
        iex> DenoEx.run({:file, Path.join(~w[test support args_echo.ts])}, ~w[foo bar])
        {:ok, "foo bar#{"\\n"}"}
+
+       iex> DenoEx.run({:stdin, "console.log('Hello, world.')"})
+       {:ok, "Hello, world.#{"\\n"}"}
+
   """
   @spec run(script(), script_arguments(), options(), timeout()) :: {:ok | :error, String.t()}
   def run(script, script_arguments \\ [], options \\ [], timeout \\ :timer.seconds(5)) do

@@ -220,7 +220,7 @@ defmodule DenoEx.Pipe do
        iex> DenoEx.Pipe.new({:file, Path.join(~w[test support hello.ts])}) |> DenoEx.Pipe.run()
        #DenoEx.Pipe<status: :running, ...>
   """
-  @spec run(t(status())) :: t(:running) | no_return()
+  @spec run(t(:initialized)) :: t(:running)
   def run(%__MODULE__{status: :initialized, command: {:file, command}} = pipe) do
     {:ok, pid, os_pid} = :exec.run(command, [:stdout, :stderr, :monitor])
 
@@ -247,7 +247,7 @@ defmodule DenoEx.Pipe do
        iex> DenoEx.Pipe.new({:file, Path.join(~w[test support hello.ts])}) |> DenoEx.Pipe.run() |> DenoEx.Pipe.await(1)
        #DenoEx.Pipe<status: {:exit, :timeout}, ...>
   """
-  @spec await(t(:running), timeout()) :: t(exit_status()) | none()
+  @spec await(t(:running), timeout()) :: t(exit_status())
   def await(%__MODULE__{status: :running} = pipe, timeout \\ :timer.seconds(5)) do
     pid = pipe.pid
     os_pid = pipe.os_pid
