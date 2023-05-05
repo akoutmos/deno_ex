@@ -116,15 +116,19 @@ defmodule DenoEx.Pipe do
 
   @typedoc "exit statuses"
   @type exit_status :: {:exit, :normal | :timeout | pos_integer()}
+
   @typedoc "current status of the pipe"
   @type status :: :initialized | :running | exit_status()
+
   @typedoc "types of datastreams"
   @type datastream :: :stderr | :stdout
+
   @typedoc "#{__MODULE__}"
-  @opaque t(status) :: %__MODULE__{status: status}
-  @opaque t() :: t(status())
+  @type t(status) :: %__MODULE__{status: status}
+  @type t() :: t(status())
+
   @typedoc "arguments for deno"
-  @type options() :: unquote(NimbleOptions.option_typespec(@run_options_schema))
+  @type options() :: keyword(unquote(NimbleOptions.option_typespec(@run_options_schema)))
 
   defstruct command: "",
             pid: nil,
@@ -151,7 +155,7 @@ defmodule DenoEx.Pipe do
        iex> DenoEx.Pipe.new(Path.join(~w[test support args_echo.ts]), ~w[foo bar])
        #DenoEx.Pipe<status: :initialized, ...>
   """
-  @spec new(DenoEx.script(), DenoEx.script_arguments(), options) :: t(:initialized) | {:error, String.t()}
+  @spec new(DenoEx.script(), DenoEx.script_arguments(), options()) :: t(:initialized) | {:error, String.t()}
   def new(script, script_args \\ [], options \\ [])
 
   def new({:stdin, script}, script_args, options) do

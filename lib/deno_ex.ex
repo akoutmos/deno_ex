@@ -50,7 +50,7 @@ defmodule DenoEx do
   @type script_arguments() :: [String.t()]
 
   @typedoc "The arguments for deno"
-  @type options() :: Pipe.t()
+  @type options() :: Pipe.options()
 
   @doc """
   Uses `deno run` to run a Deno script.
@@ -90,7 +90,7 @@ defmodule DenoEx do
   @doc """
   Returns the location where the deno script is expected to be located.
   """
-  @spec executable_location() :: binary()
+  @spec executable_location() :: String.t()
   def executable_location do
     System.get_env(@env_location_variable, @executable_location)
   end
