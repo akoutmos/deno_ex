@@ -23,8 +23,10 @@ defmodule DenoEx.MixProject do
         "coveralls.github": :test
       ],
       dialyzer: [
+        plt_add_deps: :apps_direct,
         plt_add_apps: [:erlexec, :octo_fetch, :mix],
-        plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
+        flags: ~w[unmatched_returns error_handling underspecs]a
       ],
       package: package(),
       deps: deps(),

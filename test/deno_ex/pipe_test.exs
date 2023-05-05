@@ -21,22 +21,40 @@ defmodule DenoEx.PipeTest do
     assert %{command: {:file, command}, status: :initialized} =
              Pipe.new({:file, @script}, ~w[arg], allow_env: ~w[USER SHELL])
 
-    assert command =~ DenoEx.executable_location()
-    assert command =~ @script
-    assert command =~ "arg"
-    assert command =~ "--allow-env=USER,SHELL"
+    assert command == [
+             Path.join(DenoEx.executable_location(), "deno"),
+             "run",
+             ["--allow-env=USER,SHELL"],
+             @script,
+             ["arg"]
+           ]
   end
 
   test "initializing with a different deno location" do
-    assert %{command: {:file, command}} = Pipe.new({:file, @script}, ~w[arg], deno_location: "path")
-    refute command =~ DenoEx.executable_location()
-    assert command =~ "path/deno"
+    path = "somepath"
+    assert %{command: {:file, command}} = Pipe.new({:file, @script}, ~w[arg], deno_location: path)
+
+    assert command == [Path.join(path, "deno"), "run", [], @script, ["arg"]]
   end
 
   test "run with a good script" do
     assert %{status: :running} =
              {:file, @script}
              |> Pipe.new(~w[arg], allow_env: ~w[USER SHELL])
+             |> Pipe.run()
+  end
+
+  test "support iodata scripts" do
+    assert %{status: :running} =
+             {:stdin, ["console.log(", "hello", ")"]}
+             |> Pipe.new([])
+             |> Pipe.run()
+  end
+
+  test "support chardata scripts" do
+    assert %{status: :running} =
+             {:stdin, ["console.log(", 'hello', ?)]}
+             |> Pipe.new([])
              |> Pipe.run()
   end
 
