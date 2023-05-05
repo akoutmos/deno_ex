@@ -114,25 +114,22 @@ defmodule DenoEx.Pipe do
                       ]
                       |> NimbleOptions.new!()
 
-  @typedoc "exit statuses"
-  @type exit_status :: {:exit, :normal | :timeout | pos_integer()}
-
-  @typedoc "current status of the pipe"
-  @type status :: :initialized | :running | exit_status()
+  @typedoc "status of the pipe"
+  @type status :: :initialized | :running | {:exited, :normal | pos_integer()} | :timeout
 
   @typedoc "types of datastreams"
   @type datastream :: :stderr | :stdout
 
   @typedoc "#{__MODULE__}"
-  @type t() :: %__MODULE__{
-          command: {:file, String.t()} | {:stdin, String.t(), String.t()},
-          pid: pid(),
-          os_pid: integer(),
-          stderr: list(String.t()),
-          stdout: list(String.t()),
-          status: status()
-        }
-  @type t(status) :: %__MODULE__{status: status}
+  @opaque t() :: %__MODULE__{
+            command: {:file, String.t()} | {:stdin, String.t(), String.t()},
+            pid: pid(),
+            os_pid: integer(),
+            stderr: list(String.t()),
+            stdout: list(String.t()),
+            status: status()
+          }
+  @opaque t(status) :: %__MODULE__{status: status}
 
   @typedoc "arguments for deno"
   @type options() :: keyword(unquote(NimbleOptions.option_typespec(@run_options_schema)))
@@ -241,14 +238,17 @@ defmodule DenoEx.Pipe do
 
   ## Examples
 
-       iex> DenoEx.Pipe.new({:file, Path.join(~w[test support hello.ts])}) |> DenoEx.Pipe.run() |> DenoEx.Pipe.await()
+       iex> {:ok, pipe} = DenoEx.Pipe.new({:file, Path.join(~w[test support hello.ts])}) |> DenoEx.Pipe.run() |> DenoEx.Pipe.yield()
+       iex> pipe
        #DenoEx.Pipe<status: {:exit, :normal}, ...>
 
-       iex> DenoEx.Pipe.new({:file, Path.join(~w[test support hello.ts])}) |> DenoEx.Pipe.run() |> DenoEx.Pipe.await(1)
-       #DenoEx.Pipe<status: {:exit, :timeout}, ...>
+       iex> {:timeout, pipe} = DenoEx.Pipe.new({:file, Path.join(~w[test support hello.ts])}) |> DenoEx.Pipe.run() |> DenoEx.Pipe.yield(1)
+       iex> pipe
+       #DenoEx.Pipe<status: :timeout, ...>
   """
-  @spec await(t(:running), timeout()) :: t(exit_status())
-  def await(%__MODULE__{status: :running} = pipe, timeout \\ :timer.seconds(5)) do
+  @spec yield(t(:running), timeout()) ::
+          {:ok, t({:exit, :normal})} | {:error, t({:exit, pos_integer()})} | {:timeout, t(:timeout)}
+  def yield(%__MODULE__{status: :running} = pipe, timeout \\ :timer.seconds(5)) do
     pid = pipe.pid
     os_pid = pipe.os_pid
 
@@ -270,10 +270,20 @@ defmodule DenoEx.Pipe do
       after
         timeout ->
           :exec.kill(os_pid, :sigterm)
-          %{pipe | status: {:exit, :timeout}}
+          %{pipe | status: :timeout}
       end
     end)
     |> Enum.find(&finished?/1)
+    |> then(fn
+      %__MODULE__{status: {:exit, :normal}} = pipe ->
+        {:ok, pipe}
+
+      %__MODULE__{status: {:exit, code}} = pipe when is_integer(code) ->
+        {:error, pipe}
+
+      %__MODULE__{status: :timeout} = pipe ->
+        {:timeout, pipe}
+    end)
   end
 
   @doc "get the buffer from the desired datastream"
@@ -288,6 +298,14 @@ defmodule DenoEx.Pipe do
   @spec finished?(t(status())) :: boolean()
   def finished?(pipe) do
     pipe.status not in [:running, :initialized]
+  end
+
+  @doc """
+  returns the exit code of a finished pipe
+  """
+  @spec status(t(status())) :: status()
+  def status(%__MODULE__{status: status}) do
+    status
   end
 
   @doc false

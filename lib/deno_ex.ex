@@ -71,22 +71,21 @@ defmodule DenoEx do
 
        iex> DenoEx.run({:stdin, "console.log('Hello, world.')"})
        {:ok, "Hello, world.#{"\\n"}"}
-
   """
   @spec run(script(), script_arguments(), options(), timeout()) :: {:ok | :error, String.t()}
   def run(script, script_arguments \\ [], options \\ [], timeout \\ :timer.seconds(5)) do
     script
     |> Pipe.new(script_arguments, options)
     |> Pipe.run()
-    |> Pipe.await(timeout)
+    |> Pipe.yield(timeout)
     |> then(fn
-      %Pipe{status: {:exit, :normal}} = pipe ->
+      {:ok, pipe} ->
         {:ok, pipe |> Pipe.output(:stdout) |> Enum.join("")}
 
-      %Pipe{status: {:exit, code}} = pipe when is_integer(code) ->
+      {:error, pipe} ->
         {:error, pipe |> Pipe.output(:stderr) |> Enum.join("")}
 
-      %Pipe{status: {:exit, :timeout}} = pipe ->
+      {:timeout, pipe} ->
         {:timeout, pipe}
     end)
   end

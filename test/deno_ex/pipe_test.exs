@@ -49,72 +49,80 @@ defmodule DenoEx.PipeTest do
     end
   end
 
-  test "awaiting a running script" do
-    assert %{status: {:exit, :normal}} =
+  test "yielding a running script" do
+    assert {:ok, %{status: {:exit, :normal}}} =
              {:file, @script}
              |> Pipe.new(~w[arg], allow_env: ~w[USER SHELL])
              |> Pipe.run()
-             |> Pipe.await()
+             |> Pipe.yield()
   end
 
-  test "timeout while awaiting" do
-    assert %{status: {:exit, :timeout}} =
+  test "timeout while yielding" do
+    assert {:timeout, %{status: :timeout}} =
              {:file, @script}
              |> Pipe.new(~w[arg], allow_env: ~w[USER SHELL])
              |> Pipe.run()
-             |> Pipe.await(1)
+             |> Pipe.yield(1)
   end
 
   test "non-zero exit" do
-    assert %{status: {:exit, exit_code}} =
+    assert {:error, %{status: {:exit, exit_code}}} =
              {:file, Path.join(~w[test support fail.ts])}
              |> Pipe.new(~w[arg], allow_env: ~w[USER SHELL])
              |> Pipe.run()
-             |> Pipe.await()
+             |> Pipe.yield()
 
     assert is_integer(exit_code)
   end
 
   test "getting stdout from a pipe" do
-    assert ["arg foo\n"] =
-             {:file, @script}
-             |> Pipe.new(~w[arg foo], allow_env: ~w[USER SHELL])
-             |> Pipe.run()
-             |> Pipe.await()
-             |> Pipe.output(:stdout)
+    {:ok, pipe} =
+      {:file, @script}
+      |> Pipe.new(~w[arg foo], allow_env: ~w[USER SHELL])
+      |> Pipe.run()
+      |> Pipe.yield()
+
+    assert ["arg foo\n"] = Pipe.output(pipe, :stdout)
   end
 
   test "getting stderr from pipe" do
-    assert ["Bad Exit"] =
-             {:file, Path.join(~w[test support fail.ts])}
-             |> Pipe.new(~w[arg], allow_env: ~w[USER SHELL])
-             |> Pipe.run()
-             |> Pipe.await()
-             |> Pipe.output(:stderr)
+    {:error, pipe} =
+      {:file, Path.join(~w[test support fail.ts])}
+      |> Pipe.new(~w[arg], allow_env: ~w[USER SHELL])
+      |> Pipe.run()
+      |> Pipe.yield()
+
+    assert ["Bad Exit"] = Pipe.output(pipe, :stderr)
   end
 
   test "finished" do
-    assert {:file, @script}
-           |> Pipe.new(~w[arg foo], allow_env: ~w[USER SHELL])
-           |> Pipe.run()
-           |> Pipe.await()
-           |> Pipe.finished?()
+    {:ok, pipe} =
+      {:file, @script}
+      |> Pipe.new(~w[arg foo], allow_env: ~w[USER SHELL])
+      |> Pipe.run()
+      |> Pipe.yield()
+
+    assert Pipe.finished?(pipe)
 
     refute {:file, @script}
            |> Pipe.new(~w[arg foo], allow_env: ~w[USER SHELL])
            |> Pipe.run()
            |> Pipe.finished?()
 
-    assert {:file, Path.join(~w[test support fail.ts])}
-           |> Pipe.new(~w[arg], allow_env: ~w[USER SHELL])
-           |> Pipe.run()
-           |> Pipe.await()
-           |> Pipe.finished?()
+    {:error, pipe} =
+      {:file, Path.join(~w[test support fail.ts])}
+      |> Pipe.new(~w[arg], allow_env: ~w[USER SHELL])
+      |> Pipe.run()
+      |> Pipe.yield()
 
-    assert {:file, @script}
-           |> Pipe.new(~w[arg], allow_env: ~w[USER SHELL])
-           |> Pipe.run()
-           |> Pipe.await(1)
-           |> Pipe.finished?()
+    assert Pipe.finished?(pipe)
+
+    {:timeout, pipe} =
+      {:file, @script}
+      |> Pipe.new(~w[arg], allow_env: ~w[USER SHELL])
+      |> Pipe.run()
+      |> Pipe.yield(1)
+
+    assert Pipe.finished?(pipe)
   end
 end
