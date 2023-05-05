@@ -122,7 +122,7 @@ defmodule DenoEx.Pipe do
 
   @typedoc "#{__MODULE__}"
   @opaque t() :: %__MODULE__{
-            command: {:file, String.t()} | {:stdin, String.t(), String.t()},
+            command: {:file, [String.t()]} | {:stdin, [String.t()], [String.t()]},
             pid: pid(),
             os_pid: integer(),
             stderr: list(String.t()),
@@ -134,7 +134,7 @@ defmodule DenoEx.Pipe do
   @typedoc "arguments for deno"
   @type options() :: keyword(unquote(NimbleOptions.option_typespec(@run_options_schema)))
 
-  defstruct command: "",
+  defstruct command: [""],
             pid: nil,
             os_pid: nil,
             stderr: [],
@@ -176,9 +176,7 @@ defmodule DenoEx.Pipe do
             deno_options,
             script_args,
             "-"
-          ]
-          |> List.flatten()
-          |> Enum.join(" "),
+          ],
           script
         }
       }
@@ -200,9 +198,7 @@ defmodule DenoEx.Pipe do
              deno_options,
              script,
              script_args
-           ]
-           |> List.flatten()
-           |> Enum.join(" ")}
+           ]}
       }
     end
   end
@@ -219,18 +215,24 @@ defmodule DenoEx.Pipe do
   """
   @spec run(t(:initialized)) :: t(:running)
   def run(%__MODULE__{status: :initialized, command: {:file, command}} = pipe) do
-    {:ok, pid, os_pid} = :exec.run(command, [:stdout, :stderr, :monitor])
-
-    %{pipe | status: :running, pid: pid, os_pid: os_pid}
+    start_proccess(pipe, command)
   end
 
   def run(%__MODULE__{status: :initialized, command: {:stdin, command, input}} = pipe) do
-    {:ok, pid, os_pid} = :exec.run(command, [:stdout, :stderr, :monitor, :stdin])
+    pipe = start_proccess(pipe, command)
 
-    :ok = :exec.send(pid, input)
-    :ok = :exec.send(pid, :eof)
+    :ok = __MODULE__.send(pipe, IO.iodata_to_binary(input))
+    :ok = __MODULE__.send(pipe, :eof)
 
-    %{pipe | status: :running, pid: pid, os_pid: os_pid}
+    pipe
+  end
+
+  @doc """
+  Sends data to a running process
+  """
+  @spec send(t(:running), String.t() | :eof) :: :ok
+  def send(%{pid: pid, status: :running}, data) when is_binary(data) or data == :eof do
+    :exec.send(pid, data)
   end
 
   @doc """
@@ -269,7 +271,7 @@ defmodule DenoEx.Pipe do
           %{pipe | stdout: [output | pipe.stdout]}
       after
         timeout ->
-          :exec.kill(os_pid, :sigterm)
+          _ = :exec.kill(os_pid, :sigterm)
           %{pipe | status: :timeout}
       end
     end)
@@ -334,5 +336,15 @@ defmodule DenoEx.Pipe do
 
     string_values = Enum.join(values, ",")
     "--#{string_option}=#{string_values}"
+  end
+
+  defp start_proccess(pipe, command) do
+    {:ok, pid, os_pid} =
+      command
+      |> List.flatten()
+      |> Enum.join(" ")
+      |> :exec.run([:stdout, :stderr, :monitor, :stdin])
+
+    %{pipe | status: :running, pid: pid, os_pid: os_pid}
   end
 end

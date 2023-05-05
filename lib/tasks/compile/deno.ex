@@ -14,7 +14,7 @@ defmodule Mix.Tasks.Compile.Deno do
     if File.exists?(deno_path) do
       {:noop, []}
     else
-      DenoEx.DenoDownloader.install(DenoEx.executable_location(), 0o770)
+      _ = DenoEx.DenoDownloader.install(DenoEx.executable_location(), 0o770)
 
       if File.exists?(deno_path) do
         {:ok, ["Deno installation complete"]}

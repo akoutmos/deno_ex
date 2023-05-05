@@ -30,7 +30,7 @@ defmodule DenoEx.DenoDownloader do
     with :ok <- File.mkdir_p(install_path),
          {:ok, [path], []} <-
            DenoEx.DenoDownloader.download(install_path) do
-      File.chmod(path, permissions)
+      :ok = File.chmod(path, permissions)
       {:ok, path}
     end
   end

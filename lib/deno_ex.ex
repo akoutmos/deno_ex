@@ -44,7 +44,7 @@ defmodule DenoEx do
   The path to the script that should be executed, or a tuple denoting
   what should be passed to the Deno executable over STDIN.
   """
-  @type script() :: {:file, Path.t()} | {:stdin, String.t()}
+  @type script() :: {:file, Path.t()} | {:stdin, IO.chardata()}
 
   @typedoc "The list of arguements to be passed to the script"
   @type script_arguments() :: [String.t()]
