@@ -38,6 +38,7 @@ defmodule Mix.Tasks.DenoEx.Install do
 
     Mix.shell().info("Installing Deno to #{options[:path]} and setting permissions to #{options[:chmod]}")
 
-    DenoEx.DenoDownloader.install(options[:path], options[:chmod] |> Integer.parse(8) |> elem(0))
+    {chmod, _} = Integer.parse(options[:chmod], 8)
+    DenoEx.DenoDownloader.install(options[:path], chmod)
   end
 end

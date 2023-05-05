@@ -109,5 +109,5 @@ console.log("Hello, world.")
 Open iex using `iex -S mix` and then run the TypeScript file:
 
 ```elixir
-iex > DenoEx.run("path/to/file.ts")
+iex > DenoEx.run({:file, "path/to/file.ts"})
 ```

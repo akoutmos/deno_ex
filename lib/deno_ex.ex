@@ -1,6 +1,7 @@
 defmodule DenoEx do
   @default_executable_location :deno_ex |> :code.priv_dir() |> Path.join("bin")
   @env_location_variable "DENO_LOCATION"
+
   alias DenoEx.Pipe
 
   @moduledoc """
@@ -18,7 +19,7 @@ defmodule DenoEx do
 
   ### Function Option
 
-       iex> DenoEx.run(Path.join(~w[test support hello.ts]), [], [deno_location: "#{@default_executable_location}"])
+       iex> DenoEx.run({:file, Path.join(~w[test support hello.ts])}, [], [deno_location: "#{@default_executable_location}"])
        {:ok, "Hello, world.#{"\\n"}"}
 
   ### Application Configuration
@@ -39,12 +40,17 @@ defmodule DenoEx do
                          @default_executable_location
                        )
 
-  @typedoc "The path to the script"
-  @type script() :: Path.t()
+  @typedoc """
+  The path to the script that should be executed, or a tuple denoting
+  what should be passed to the Deno executable over STDIN.
+  """
+  @type script() :: {:file, Path.t()} | {:stdin, String.t()}
+
   @typedoc "The list of arguements to be passed to the script"
   @type script_arguments() :: [String.t()]
+
   @typedoc "The arguments for deno"
-  @type options() :: Pipe.t()
+  @type options() :: Pipe.options()
 
   @doc """
   Uses `deno run` to run a Deno script.
@@ -57,26 +63,30 @@ defmodule DenoEx do
 
   ## Examples
 
-       iex> DenoEx.run(Path.join(~w[test support hello.ts]))
+       iex> DenoEx.run({:file, Path.join(~w[test support hello.ts])})
        {:ok, "Hello, world.#{"\\n"}"}
 
-       iex> DenoEx.run(Path.join(~w[test support args_echo.ts]), ~w[foo bar])
+       iex> DenoEx.run({:file, Path.join(~w[test support args_echo.ts])}, ~w[foo bar])
        {:ok, "foo bar#{"\\n"}"}
+
+       iex> DenoEx.run({:stdin, "console.log('Hello, world.')"})
+       {:ok, "Hello, world.#{"\\n"}"}
+
   """
-  @spec run(script, script_arguments, options, timeout) :: {:ok | :error, String.t()}
+  @spec run(script(), script_arguments(), options(), timeout()) :: {:ok | :error, String.t()}
   def run(script, script_arguments \\ [], options \\ [], timeout \\ :timer.seconds(5)) do
     script
     |> Pipe.new(script_arguments, options)
     |> Pipe.run()
     |> Pipe.await(timeout)
     |> then(fn
-      %{status: {:exit, :normal}} = pipe ->
+      %Pipe{status: {:exit, :normal}} = pipe ->
         {:ok, pipe |> Pipe.output(:stdout) |> Enum.join("")}
 
-      %{status: {:exit, code}} = pipe when is_integer(code) ->
+      %Pipe{status: {:exit, code}} = pipe when is_integer(code) ->
         {:error, pipe |> Pipe.output(:stderr) |> Enum.join("")}
 
-      %{status: {:exit, :timeout}} = pipe ->
+      %Pipe{status: {:exit, :timeout}} = pipe ->
         {:timeout, pipe}
     end)
   end
@@ -84,7 +94,7 @@ defmodule DenoEx do
   @doc """
   Returns the location where the deno script is expected to be located.
   """
-  @spec executable_location() :: binary()
+  @spec executable_location() :: String.t()
   def executable_location do
     System.get_env(@env_location_variable, @executable_location)
   end

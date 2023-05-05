@@ -24,3 +24,10 @@ deno_ex-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# OS files
+.DS_Store
+
+# Dialyzer PLT files
+/priv/plts/*.plt
+/priv/plts/*.plt.hash
