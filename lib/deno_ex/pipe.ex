@@ -124,8 +124,15 @@ defmodule DenoEx.Pipe do
   @type datastream :: :stderr | :stdout
 
   @typedoc "#{__MODULE__}"
+  @type t() :: %__MODULE__{
+          command: {:file, String.t()} | {:stdin, String.t(), String.t()},
+          pid: pid(),
+          os_pid: integer(),
+          stderr: list(String.t()),
+          stdout: list(String.t()),
+          status: status()
+        }
   @type t(status) :: %__MODULE__{status: status}
-  @type t() :: t(status())
 
   @typedoc "arguments for deno"
   @type options() :: keyword(unquote(NimbleOptions.option_typespec(@run_options_schema)))
@@ -135,7 +142,6 @@ defmodule DenoEx.Pipe do
             os_pid: nil,
             stderr: [],
             stdout: [],
-            stdin: nil,
             status: :initialized
 
   @doc """
@@ -149,10 +155,10 @@ defmodule DenoEx.Pipe do
 
   ## Examples
 
-       iex> DenoEx.Pipe.new(Path.join(~w[test support hello.ts]))
+       iex> DenoEx.Pipe.new({:file, Path.join(~w[test support hello.ts])})
        #DenoEx.Pipe<status: :initialized, ...>
 
-       iex> DenoEx.Pipe.new(Path.join(~w[test support args_echo.ts]), ~w[foo bar])
+       iex> DenoEx.Pipe.new({:file, Path.join(~w[test support args_echo.ts])}, ~w[foo bar])
        #DenoEx.Pipe<status: :initialized, ...>
   """
   @spec new(DenoEx.script(), DenoEx.script_arguments(), options()) :: t(:initialized) | {:error, String.t()}
@@ -165,8 +171,8 @@ defmodule DenoEx.Pipe do
       deno_options = Enum.map(deno_options, &to_command_line_option/1)
 
       %__MODULE__{
-        stdin: script,
-        command:
+        command: {
+          :stdin,
           [
             Path.join(deno_location, "deno"),
             "run",
@@ -175,12 +181,14 @@ defmodule DenoEx.Pipe do
             "-"
           ]
           |> List.flatten()
-          |> Enum.join(" ")
+          |> Enum.join(" "),
+          script
+        }
       }
     end
   end
 
-  def new(script, script_args, options) do
+  def new({:file, script}, script_args, options) do
     with {:ok, options} <- NimbleOptions.validate(options, @run_options_schema),
          {deno_location, deno_options} <-
            Keyword.pop(options, :deno_location, DenoEx.executable_location()) do
@@ -188,15 +196,16 @@ defmodule DenoEx.Pipe do
 
       %__MODULE__{
         command:
-          [
-            Path.join(deno_location, "deno"),
-            "run",
-            deno_options,
-            script,
-            script_args
-          ]
-          |> List.flatten()
-          |> Enum.join(" ")
+          {:file,
+           [
+             Path.join(deno_location, "deno"),
+             "run",
+             deno_options,
+             script,
+             script_args
+           ]
+           |> List.flatten()
+           |> Enum.join(" ")}
       }
     end
   end
@@ -208,20 +217,20 @@ defmodule DenoEx.Pipe do
 
   ## Examples
 
-       iex> DenoEx.Pipe.new(Path.join(~w[test support hello.ts])) |> DenoEx.Pipe.run()
+       iex> DenoEx.Pipe.new({:file, Path.join(~w[test support hello.ts])}) |> DenoEx.Pipe.run()
        #DenoEx.Pipe<status: :running, ...>
   """
   @spec run(t(status())) :: t(:running) | no_return()
-  def run(%__MODULE__{status: :initialized, command: command, stdin: nil} = pipe) do
+  def run(%__MODULE__{status: :initialized, command: {:file, command}} = pipe) do
     {:ok, pid, os_pid} = :exec.run(command, [:stdout, :stderr, :monitor])
 
     %{pipe | status: :running, pid: pid, os_pid: os_pid}
   end
 
-  def run(%__MODULE__{status: :initialized, command: command, stdin: stdin} = pipe) do
+  def run(%__MODULE__{status: :initialized, command: {:stdin, command, input}} = pipe) do
     {:ok, pid, os_pid} = :exec.run(command, [:stdout, :stderr, :monitor, :stdin])
 
-    :ok = :exec.send(pid, stdin)
+    :ok = :exec.send(pid, input)
     :ok = :exec.send(pid, :eof)
 
     %{pipe | status: :running, pid: pid, os_pid: os_pid}
@@ -232,10 +241,10 @@ defmodule DenoEx.Pipe do
 
   ## Examples
 
-       iex> DenoEx.Pipe.new(Path.join(~w[test support hello.ts])) |> DenoEx.Pipe.run() |> DenoEx.Pipe.await()
+       iex> DenoEx.Pipe.new({:file, Path.join(~w[test support hello.ts])}) |> DenoEx.Pipe.run() |> DenoEx.Pipe.await()
        #DenoEx.Pipe<status: {:exit, :normal}, ...>
 
-       iex> DenoEx.Pipe.new(Path.join(~w[test support hello.ts])) |> DenoEx.Pipe.run() |> DenoEx.Pipe.await(1)
+       iex> DenoEx.Pipe.new({:file, Path.join(~w[test support hello.ts])}) |> DenoEx.Pipe.run() |> DenoEx.Pipe.await(1)
        #DenoEx.Pipe<status: {:exit, :timeout}, ...>
   """
   @spec await(t(:running), timeout()) :: t(exit_status()) | none()

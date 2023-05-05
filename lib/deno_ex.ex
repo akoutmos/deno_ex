@@ -19,7 +19,7 @@ defmodule DenoEx do
 
   ### Function Option
 
-       iex> DenoEx.run(Path.join(~w[test support hello.ts]), [], [deno_location: "#{@default_executable_location}"])
+       iex> DenoEx.run({:file, Path.join(~w[test support hello.ts])}, [], [deno_location: "#{@default_executable_location}"])
        {:ok, "Hello, world.#{"\\n"}"}
 
   ### Application Configuration
@@ -44,7 +44,7 @@ defmodule DenoEx do
   The path to the script that should be executed, or a tuple denoting
   what should be passed to the Deno executable over STDIN.
   """
-  @type script() :: Path.t() | {:stdin, String.t()}
+  @type script() :: {:file, Path.t()} | {:stdin, String.t()}
 
   @typedoc "The list of arguements to be passed to the script"
   @type script_arguments() :: [String.t()]
@@ -63,10 +63,10 @@ defmodule DenoEx do
 
   ## Examples
 
-       iex> DenoEx.run(Path.join(~w[test support hello.ts]))
+       iex> DenoEx.run({:file, Path.join(~w[test support hello.ts])})
        {:ok, "Hello, world.#{"\\n"}"}
 
-       iex> DenoEx.run(Path.join(~w[test support args_echo.ts]), ~w[foo bar])
+       iex> DenoEx.run({:file, Path.join(~w[test support args_echo.ts])}, ~w[foo bar])
        {:ok, "foo bar#{"\\n"}"}
   """
   @spec run(script(), script_arguments(), options(), timeout()) :: {:ok | :error, String.t()}
@@ -76,13 +76,13 @@ defmodule DenoEx do
     |> Pipe.run()
     |> Pipe.await(timeout)
     |> then(fn
-      %{status: {:exit, :normal}} = pipe ->
+      %Pipe{status: {:exit, :normal}} = pipe ->
         {:ok, pipe |> Pipe.output(:stdout) |> Enum.join("")}
 
-      %{status: {:exit, code}} = pipe when is_integer(code) ->
+      %Pipe{status: {:exit, code}} = pipe when is_integer(code) ->
         {:error, pipe |> Pipe.output(:stderr) |> Enum.join("")}
 
-      %{status: {:exit, :timeout}} = pipe ->
+      %Pipe{status: {:exit, :timeout}} = pipe ->
         {:timeout, pipe}
     end)
   end
