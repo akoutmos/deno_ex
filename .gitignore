@@ -28,6 +28,9 @@ deno_ex-*.tar
 # OS files
 .DS_Store
 
+# Downloaded Deno binary
+/priv/bin
+
 # Dialyzer PLT files
 /priv/plts/*.plt
 /priv/plts/*.plt.hash

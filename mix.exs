@@ -66,7 +66,7 @@ defmodule DenoEx.MixProject do
       main: "readme",
       source_ref: "master",
       logo: "guides/images/logo.svg",
-      extras: ["README.md", "guides/examples/tesseract_ocr.livemd"],
+      extras: ["README.md", "guides/examples/tesseract_ocr.livemd", "guides/examples/web_scraper.livemd"],
       groups_for_extras: [
         "Example Livebooks": Path.wildcard("guides/examples/*.livemd")
       ]

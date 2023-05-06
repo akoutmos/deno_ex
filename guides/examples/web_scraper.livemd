@@ -1,0 +1,56 @@
+# Site Scraping With DOMParser
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.9"},
+  {:jason, "~> 1.4"},
+  {:deno_ex, "~> 0.1"}
+])
+```
+
+## Introduction
+
+Using the built in Deno fetch API, and the `DOMParser` library you can fetch HTML
+documents and parse them. In this example, we are fetching all of the blog posts
+from [my blog's](https://akoutmos.com) home page, marshalling all that data into a
+JSON blob, outputting that JSON blob to STDOUT, and then decoding it using Jason.
+
+## Code
+
+```elixir
+form = Kino.Control.form([file: Kino.Input.file("File")], submit: "Process image")
+```
+
+```elixir
+script = """
+import { DOMParser } from 'https://deno.land/x/deno_dom/deno-dom-wasm.ts';
+
+const url = 'https://akoutmos.com';
+
+try {
+  const res = await fetch(url);
+  const html = await res.text();
+  const document: any = new DOMParser().parseFromString(html, 'text/html');
+
+  const result = Array.from(document.querySelectorAll('.post-preview a')).map((elem) => {
+    return {
+      title: elem.querySelector('h2').innerText,
+      summary: elem.querySelector('div').innerText,
+      link: elem.getAttribute('href')
+    } 
+  })
+
+  console.log(JSON.stringify(result))
+} catch(error) {
+  console.log(error);
+}
+"""
+
+{:ok, result} = DenoEx.run({:stdin, script}, [], allow_net: true)
+
+result
+|> Jason.decode!()
+|> IO.inspect()
+
+:ok
+```
