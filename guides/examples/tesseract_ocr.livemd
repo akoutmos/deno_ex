@@ -3,14 +3,14 @@
 ```elixir
 Mix.install([
   {:kino, "~> 0.9"},
-  {:deno_ex, "~> 0.1"}
+  {:deno_ex, "~> 0.2"}
 ])
 ```
 
 ## Introduction
 
 This Livebook shows you how you can use the Deno Terreract wrapper in order to
-perform optical character recognition (OCR for short) on images. Use the Kino 
+perform optical character recognition (OCR for short) on images. Use the Kino
 input form to process your images and take it for a test drive!
 
 ## Code

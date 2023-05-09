@@ -51,7 +51,7 @@ defmodule DenoEx.MixProject do
   defp package do
     [
       name: "deno_ex",
-      files: ~w(lib mix.exs README.md LICENSE CHANGELOG.md),
+      files: ~w(lib mix.exs README.md LICENSE CHANGELOG.md VERSION),
       licenses: ["MIT"],
       maintainers: ["Alex Koutmos"],
       links: %{

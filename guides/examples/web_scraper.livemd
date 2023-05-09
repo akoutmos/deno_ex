@@ -4,7 +4,7 @@
 Mix.install([
   {:kino, "~> 0.9"},
   {:jason, "~> 1.4"},
-  {:deno_ex, "~> 0.1"}
+  {:deno_ex, "~> 0.2"}
 ])
 ```
 
@@ -37,7 +37,7 @@ try {
       title: elem.querySelector('h2').innerText,
       summary: elem.querySelector('div').innerText,
       link: elem.getAttribute('href')
-    } 
+    }
   })
 
   console.log(JSON.stringify(result))
