@@ -9,6 +9,7 @@ defmodule DenoEx.DenoDownloader do
     download_versions: %{
       "1.33.1" => [
         {:darwin, :arm64, "e4a531d061fa8151070a6323e35a23620d6889297b810b6424a5125842ecbb47"},
+        {:darwin, :amd64, "20166aa1b24b89edfa7b7c34f1b940f52bf8300108178cd37a36e5dd8a899c36"},
         {:linux, :amd64, "dfe4f29aff4c885dd6196d7623f50c8aad9c1627be8bc9abe67e424aeb78f63e"}
       ]
     }
@@ -17,7 +18,7 @@ defmodule DenoEx.DenoDownloader do
 
   @impl true
   def download_name(_version, :darwin, :arm64), do: "deno-aarch64-apple-darwin.zip"
-  def download_name(_version, :darwin, arch), do: "deno-#{arch}-apple-darwin.zip"
+  def download_name(_version, :darwin, :amd64), do: "deno-x86_64-apple-darwin.zip"
   def download_name(_version, :linux, :amd64), do: "deno-x86_64-unknown-linux-gnu.zip"
 
   @doc """
