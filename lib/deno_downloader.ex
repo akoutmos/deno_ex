@@ -19,7 +19,6 @@ defmodule DenoEx.DenoDownloader do
   @impl true
   def download_name(_version, :darwin, :arm64), do: "deno-aarch64-apple-darwin.zip"
   def download_name(_version, :darwin, :amd64), do: "deno-x86_64-apple-darwin.zip"
-  def download_name(_version, :darwin, arch), do: "deno-#{arch}-apple-darwin.zip"
   def download_name(_version, :linux, :amd64), do: "deno-x86_64-unknown-linux-gnu.zip"
 
   @doc """
