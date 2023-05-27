@@ -1,6 +1,8 @@
 defmodule DenoEx.PipeTest do
   use ExUnit.Case, async: true
+
   alias DenoEx.Pipe
+
   doctest Pipe
 
   @script Path.join(~w[test support args_echo.ts])
@@ -53,7 +55,7 @@ defmodule DenoEx.PipeTest do
 
   test "support chardata scripts" do
     assert %{status: :running} =
-             {:stdin, ["console.log(", 'hello', ?)]}
+             {:stdin, ["console.log(", ~c"hello", ?)]}
              |> Pipe.new([])
              |> Pipe.run()
   end

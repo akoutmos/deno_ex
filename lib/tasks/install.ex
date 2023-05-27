@@ -1,20 +1,18 @@
-defmodule Mix.Tasks.DenoEx.Install do
-  use Mix.Task
-
-  @shortdoc "Installs Deno"
-
-  @options_schema [
-    path: [
-      type: :string,
-      default: DenoEx.executable_location(),
-      doc: "The path to install deno."
-    ],
-    chmod: [
-      type: :string,
-      default: "770",
-      doc: "The permissions that will be set on the deno binary. In octal format."
-    ]
+options_schema = [
+  path: [
+    type: :string,
+    default: DenoEx.executable_location(),
+    doc: "The path to install deno."
+  ],
+  chmod: [
+    type: :string,
+    default: "770",
+    doc: "The permissions that will be set on the deno binary. In octal format."
   ]
+]
+
+defmodule Mix.Tasks.DenoEx.Install do
+  @shortdoc "Installs Deno"
 
   @moduledoc """
   A mix task that installs Deno into your project.
@@ -25,8 +23,12 @@ defmodule Mix.Tasks.DenoEx.Install do
 
   # Options
 
-    #{NimbleOptions.docs(@options_schema)}
+    #{NimbleOptions.docs(options_schema)}
   """
+
+  use Mix.Task
+
+  @options_schema options_schema
 
   @impl true
   def run(args) do
