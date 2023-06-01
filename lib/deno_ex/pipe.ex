@@ -117,17 +117,13 @@ defmodule DenoEx.Pipe do
   @typedoc "status of the pipe"
   @type status :: :initialized | :running | {:exited, :normal | pos_integer()} | :timeout
 
-  @typedoc "types of datastreams"
-  @type datastream :: :stderr | :stdout
-
   @typedoc "#{__MODULE__}"
   @opaque t() :: %__MODULE__{
             command: {:file, [String.t()]} | {:stdin, [String.t()], [String.t()]},
-            pid: pid(),
-            os_pid: integer(),
-            stderr: list(String.t()),
-            stdout: list(String.t()),
-            status: status()
+            port: term(),
+            output: list(String.t()),
+            status: status(),
+            ref: reference()
           }
   @opaque t(status) :: %__MODULE__{status: status}
 
@@ -135,10 +131,9 @@ defmodule DenoEx.Pipe do
   @type options() :: keyword(unquote(NimbleOptions.option_typespec(@run_options_schema)))
 
   defstruct command: [""],
-            pid: nil,
-            os_pid: nil,
-            stderr: [],
-            stdout: [],
+            port: nil,
+            ref: nil,
+            output: [],
             status: :initialized
 
   @doc """
@@ -219,10 +214,8 @@ defmodule DenoEx.Pipe do
   end
 
   def run(%__MODULE__{status: :initialized, command: {:stdin, command, input}} = pipe) do
+    command = ["echo '", IO.iodata_to_binary(input), "' |", command]
     pipe = start_proccess(pipe, command)
-
-    :ok = __MODULE__.send(pipe, IO.iodata_to_binary(input))
-    :ok = __MODULE__.send(pipe, :eof)
 
     pipe
   end
@@ -230,9 +223,11 @@ defmodule DenoEx.Pipe do
   @doc """
   Sends data to a running process
   """
-  @spec send(t(:running), String.t() | :eof) :: :ok
-  def send(%{pid: pid, status: :running}, data) when is_binary(data) or data == :eof do
-    :exec.send(pid, data)
+  @spec send(t(:running), binary()) :: :ok
+  def send(%{port: port, status: :running}, data) when is_binary(data) do
+    with true <- Port.command(port, data) do
+      :ok
+    end
   end
 
   @doc """
@@ -251,27 +246,30 @@ defmodule DenoEx.Pipe do
   @spec yield(t(:running), timeout()) ::
           {:ok, t({:exit, :normal})} | {:error, t({:exit, pos_integer()})} | {:timeout, t(:timeout)}
   def yield(%__MODULE__{status: :running} = pipe, timeout \\ :timer.seconds(5)) do
-    pid = pipe.pid
-    os_pid = pipe.os_pid
+    port = pipe.port
+    ref = pipe.ref
 
     pipe
     |> Stream.iterate(fn pipe ->
       receive do
-        {:DOWN, ^os_pid, _, ^pid, {:exit_status, exit_status}} when exit_status != 0 ->
-          %{pipe | status: {:exit, exit_status}}
+        {:DOWN, ^ref, :port, ^port, reason} ->
+          %{pipe | status: {:DOWN, reason}}
 
-        {:DOWN, ^os_pid, _, ^pid, :normal} ->
+        {^port, {:exit_status, 0}} ->
           %{pipe | status: {:exit, :normal}}
 
-        {:stderr, ^os_pid, error} ->
-          error = String.trim(error)
-          %{pipe | stderr: [error | pipe.stderr]}
+        {^port, {:exit_status, exit_status}} ->
+          %{pipe | status: {:exit, exit_status}}
 
-        {:stdout, ^os_pid, output} ->
-          %{pipe | stdout: [output | pipe.stdout]}
+        {^port, {:data, output}} ->
+          %{pipe | output: [output | pipe.output]}
+
+        {^port, :connected} ->
+          ref = Port.monitor(port)
+          %{pipe | ref: ref}
       after
         timeout ->
-          _ = :exec.kill(os_pid, :sigterm)
+          Kernel.send(port, {self(), :close})
           %{pipe | status: :timeout}
       end
     end)
@@ -289,10 +287,9 @@ defmodule DenoEx.Pipe do
   end
 
   @doc "get the buffer from the desired datastream"
-  @spec output(t(status()), datastream()) :: [String.t()]
-  def output(pipe, datastream) when datastream in [:stderr, :stdout] do
-    pipe
-    |> Map.get(datastream)
+  @spec output(t(status())) :: [String.t()]
+  def output(pipe) do
+    pipe.output
     |> Enum.reverse()
   end
 
@@ -339,12 +336,13 @@ defmodule DenoEx.Pipe do
   end
 
   defp start_proccess(pipe, command) do
-    {:ok, pid, os_pid} =
+    exectution =
       command
       |> List.flatten()
       |> Enum.join(" ")
-      |> :exec.run([:stdout, :stderr, :monitor, :stdin])
 
-    %{pipe | status: :running, pid: pid, os_pid: os_pid}
+    port = Port.open({:spawn, exectution}, [:binary, :exit_status, :stderr_to_stdout, :use_stdio])
+
+    %{pipe | status: :running, port: port}
   end
 end

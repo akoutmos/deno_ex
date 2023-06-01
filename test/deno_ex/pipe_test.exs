@@ -100,7 +100,7 @@ defmodule DenoEx.PipeTest do
       |> Pipe.run()
       |> Pipe.yield()
 
-    assert ["arg foo\n"] = Pipe.output(pipe, :stdout)
+    assert ["arg foo\n"] = Pipe.output(pipe)
   end
 
   test "getting stderr from pipe" do
@@ -110,7 +110,7 @@ defmodule DenoEx.PipeTest do
       |> Pipe.run()
       |> Pipe.yield()
 
-    assert ["Bad Exit"] = Pipe.output(pipe, :stderr)
+    assert ["Bad Exit"] = Pipe.output(pipe)
   end
 
   test "finished" do
