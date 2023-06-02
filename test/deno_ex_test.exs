@@ -7,12 +7,12 @@ defmodule DenoExTest do
 
   def create_test_file(env) do
     tmp_dir = System.tmp_dir!()
-    filename = System.monotonic_time() |> to_string()
+    filename = to_string(System.monotonic_time())
 
     path = Path.join(tmp_dir, filename)
     _ = File.rm(path)
 
-    content = System.monotonic_time() |> to_string()
+    content = to_string(System.monotonic_time())
 
     File.write!(path, content)
 

@@ -1,9 +1,7 @@
+env_location_variable = "DENO_LOCATION"
+default_executable_location = :deno_ex |> :code.priv_dir() |> Path.join("bin")
+
 defmodule DenoEx do
-  @default_executable_location :deno_ex |> :code.priv_dir() |> Path.join("bin")
-  @env_location_variable "DENO_LOCATION"
-
-  alias DenoEx.Pipe
-
   @moduledoc """
   DenoEx is used to run javascript and typescript files in a safe environment by utilizing
   [Deno](https://deno.com/runtime).
@@ -19,7 +17,7 @@ defmodule DenoEx do
 
   ### Function Option
 
-       iex> DenoEx.run({:file, Path.join(~w[test support hello.ts])}, [], [deno_location: "#{@default_executable_location}"])
+       iex> DenoEx.run({:file, Path.join(~w[test support hello.ts])}, [], [deno_location: "#{default_executable_location}"])
        {:ok, "Hello, world.#{"\\n"}"}
 
   ### Application Configuration
@@ -31,8 +29,13 @@ defmodule DenoEx do
 
   ### ENV Variable
 
-    `#{@env_location_variable}=path`
+    `#{env_location_variable}=path`
   """
+
+  alias DenoEx.Pipe
+
+  @default_executable_location default_executable_location
+  @env_location_variable env_location_variable
 
   @executable_location Application.compile_env(
                          :deno_ex,

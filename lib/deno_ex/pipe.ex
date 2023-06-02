@@ -1,12 +1,12 @@
 defmodule DenoEx.Pipe do
-  @derive {Inspect, only: [:status]}
   @moduledoc """
   The DenoEx pipe.
 
   This module defines a struct and the main functions for working with deno pipes
   and their responses.
   """
-  @run_options_schema [
+  @derive {Inspect, only: [:status]}
+  @run_options_schema NimbleOptions.new!(
                         deno_location: [
                           type: :string,
                           doc: """
@@ -107,12 +107,8 @@ defmodule DenoEx.Pipe do
                           `[Path.t()]`: A list of files that can be read
                           """
                         ],
-                        allow_all: [
-                          type: :boolean,
-                          doc: "Turns on all options and bypasses all security measures"
-                        ]
-                      ]
-                      |> NimbleOptions.new!()
+                        allow_all: [type: :boolean, doc: "Turns on all options and bypasses all security measures"]
+                      )
 
   @typedoc "status of the pipe"
   @type status :: :initialized | :running | {:exited, :normal | pos_integer()} | :timeout
