@@ -196,6 +196,8 @@ defmodule DenoExTest do
 
       assert {:ok, time} = DenoEx.run({:file, script}, ~w[], allow_hrtime: false)
 
+      assert match?({_, _}, Integer.parse(time)), "#{time} is not an integer"
+
       {time, _} = Integer.parse(time)
 
       assert rem(time, non_high_resolution) == 0
@@ -210,12 +212,14 @@ defmodule DenoExTest do
       non_high_resolution = 1_000_000
 
       # using two times to reduce the chance that both will be ending in 000_000
-      assert {:ok, time} = DenoEx.run({:file, script}, ~w[], allow_hrtime: true)
+      assert {:ok, output1} = DenoEx.run({:file, script}, ~w[], allow_hrtime: true)
 
-      assert {:ok, time2} = DenoEx.run({:file, script}, ~w[], allow_hrtime: true)
+      assert {:ok, output2} = DenoEx.run({:file, script}, ~w[], allow_hrtime: true)
 
-      {time, _} = Integer.parse(time)
-      {time2, _} = Integer.parse(time2)
+      assert match?({_, _}, Integer.parse(output1)), "#{output1} is not an integer"
+      assert match?({_, _}, Integer.parse(output2)), "#{output2} is not an integer"
+      {time, _} = Integer.parse(output1)
+      {time2, _} = Integer.parse(output2)
 
       assert rem(time + time2, non_high_resolution) != 0
     end
