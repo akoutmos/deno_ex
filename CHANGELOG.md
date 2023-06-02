@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2023-06-02
+
+### Changed
+
+- Switched over to using Elixir's built in `Port` module as opposed to `:erl_exec`
+
+## [0.2.0] - 2023-05-09
+
+### Fixed
+
+- Release was not packaging artifacts properly
+
 ## [0.1.0] - 2023-05-06
 
 ### Added
