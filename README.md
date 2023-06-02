@@ -49,7 +49,7 @@ The package can be installed by adding `deno_ex` to your list of dependencies in
 ```elixir
 def deps do
   [
-    {:deno_ex, "~> 0.1.0"}
+    {:deno_ex, "~> 0.3.0"}
   ]
 end
 ```
