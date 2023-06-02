@@ -69,7 +69,7 @@ defmodule DenoEx do
        iex> DenoEx.run({:file, Path.join(~w[test support args_echo.ts])}, ~w[foo bar])
        {:ok, "foo bar#{"\\n"}"}
 
-       iex> DenoEx.run({:stdin, "console.log('Hello, world.')"})
+       iex> DenoEx.run({:stdin, "console.log(\\"Hello, world.\\")"})
        {:ok, "Hello, world.#{"\\n"}"}
   """
   @spec run(script(), script_arguments(), options(), timeout()) :: {:ok | :error, String.t()}
@@ -80,13 +80,13 @@ defmodule DenoEx do
     |> Pipe.yield(timeout)
     |> then(fn
       {:ok, pipe} ->
-        {:ok, pipe |> Pipe.output(:stdout) |> Enum.join("")}
+        {:ok, pipe |> Pipe.output() |> Enum.join("")}
 
       {:error, pipe} ->
-        {:error, pipe |> Pipe.output(:stderr) |> Enum.join("")}
+        {:error, pipe |> Pipe.output() |> Enum.join("")}
 
       {:timeout, pipe} ->
-        {:timeout, pipe}
+        {:timeout, pipe |> Pipe.output() |> Enum.join("")}
     end)
   end
 
