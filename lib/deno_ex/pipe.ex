@@ -110,6 +110,22 @@ defmodule DenoEx.Pipe do
                         allow_all: [
                           type: :boolean,
                           doc: "Turns on all options and bypasses all security measures"
+                        ],
+                        no_remote: [
+                          type: :boolean,
+                          doc: "Disallows installing of imports from remote locations"
+                        ],
+                        import_map: [
+                          type: :string,
+                          doc: "The location of the import map json file for finding vendored dependencies"
+                        ],
+                        lock: [
+                          type: :string,
+                          doc: "The location of the lock file for running scripts"
+                        ],
+                        cached_only: [
+                          type: :boolean,
+                          doc: "Only allows chaced dependencies to be used"
                         ]
                       ]
                       |> NimbleOptions.new!()
@@ -159,7 +175,7 @@ defmodule DenoEx.Pipe do
   def new({:stdin, script}, script_args, options) do
     with {:ok, options} <- NimbleOptions.validate(options, @run_options_schema),
          {deno_location, deno_options} <-
-           Keyword.pop(options, :deno_location, DenoEx.executable_location()) do
+           Keyword.pop(options, :deno_location, DenoEx.executable_path()) do
       deno_options = Enum.map(deno_options, &to_command_line_option/1)
 
       %__MODULE__{
@@ -181,7 +197,7 @@ defmodule DenoEx.Pipe do
   def new({:file, script}, script_args, options) do
     with {:ok, options} <- NimbleOptions.validate(options, @run_options_schema),
          {deno_location, deno_options} <-
-           Keyword.pop(options, :deno_location, DenoEx.executable_location()) do
+           Keyword.pop(options, :deno_location, DenoEx.executable_path()) do
       deno_options = Enum.map(deno_options, &to_command_line_option/1)
 
       %__MODULE__{
@@ -333,6 +349,15 @@ defmodule DenoEx.Pipe do
 
     string_values = Enum.join(values, ",")
     "--#{string_option}=#{string_values}"
+  end
+
+  defp to_command_line_option({option, value}) when is_binary(value) do
+    string_option =
+      option
+      |> to_string()
+      |> String.replace("_", "-")
+
+    "--#{string_option}=#{value}"
   end
 
   defp start_proccess(pipe, command) do

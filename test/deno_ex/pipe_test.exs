@@ -22,7 +22,7 @@ defmodule DenoEx.PipeTest do
              Pipe.new({:file, @script}, ~w[arg], allow_env: ~w[USER SHELL])
 
     assert command == [
-             Path.join(DenoEx.executable_location(), "deno"),
+             Path.join(DenoEx.executable_path(), "deno"),
              "run",
              ["--allow-env=USER,SHELL"],
              @script,
@@ -53,7 +53,7 @@ defmodule DenoEx.PipeTest do
 
   test "support chardata scripts" do
     assert %{status: :running} =
-             {:stdin, ["console.log(", 'hello', ?)]}
+             {:stdin, ["console.log(", ~c"hello", ?)]}
              |> Pipe.new([])
              |> Pipe.run()
   end

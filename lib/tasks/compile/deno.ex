@@ -7,14 +7,14 @@ defmodule Mix.Tasks.Compile.Deno do
   """
   use Mix.Task.Compiler
 
-  @impl true
+  @impl Mix.Task.Compiler
   def run(_) do
-    deno_path = Path.join(DenoEx.executable_location(), "deno")
+    deno_path = Path.join(DenoEx.executable_path(), "deno")
 
     if File.exists?(deno_path) do
       {:noop, []}
     else
-      _ = DenoEx.DenoDownloader.install(DenoEx.executable_location(), 0o770)
+      _ = DenoEx.DenoDownloader.install(DenoEx.executable_path(), 0o770)
 
       if File.exists?(deno_path) do
         {:ok, ["Deno installation complete"]}

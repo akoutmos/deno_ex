@@ -29,10 +29,17 @@
 
 # Contents
 
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Supporting DenoEx](#supporting-denoex)
-- [Using DenoEx](#using-denoex)
+- [Contents](#contents)
+  - [Introduction](#introduction)
+  - [Installation](#installation)
+    - [Installing the Runtime](#installing-the-runtime)
+    - [Using DenoEx to Install Copies of the Runtime](#using-denoex-to-install-copies-of-the-runtime)
+  - [Supporting DenoEx](#supporting-denoex)
+    - [Gold Sponsors](#gold-sponsors)
+    - [Silver Sponsors](#silver-sponsors)
+    - [Bronze Sponsors](#bronze-sponsors)
+  - [Using DenoEx](#using-denoex)
+    - [Handling Dependencies](#handling-dependencies)
 
 ## Introduction
 
@@ -111,3 +118,28 @@ Open iex using `iex -S mix` and then run the TypeScript file:
 ```elixir
 iex > DenoEx.run({:file, "path/to/file.ts"})
 ```
+
+### Handling Dependencies
+
+Scripts download dependencies on their first run. The output from downloading ends up in the scripts output. In
+order to avoid the time to download and vendoring at runtime we encourage users to vendor their dependencies.
+You will first need to configure vendoring.
+
+```elixir
+config :deno_ex,
+  scripts_path: [
+    Path.join(~w[test support **]),
+    Path.join(~w[my_scripts hello.ts])
+  ]
+```
+
+`scripts_path` can be a list of paths to scripts or wildcards.
+
+`mix deno_ex.deps.get` will load all dependencies in the cache and update the lock file.
+
+
+In order to ensure that your scripts use the dependencies that are cached and locked your
+scripts need a few more arguments.
+
+`cached_only: true` - tells the script to only used cached dependencies
+`lock: path_to_lockfile` - tells the script where the lock file is located
