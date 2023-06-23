@@ -4,9 +4,14 @@ defmodule DenoEx.DenoDownloader do
   """
 
   use OctoFetch,
-    latest_version: "1.33.4",
+    latest_version: "1.34.3",
     github_repo: "denoland/deno",
     download_versions: %{
+      "1.34.3" => [
+        {:darwin, :arm64, "fe48d39286fe973211500f6426300181a8f19103dd278dcbe679a586b14d8eb6"},
+        {:darwin, :amd64, "d25b6f0de52ccdf5818df184e5c795a01d06e5e28c14c4845c1ad8272c2eadad"},
+        {:linux, :amd64, "f2d496a83509937b7e4e0c9316355f2ff4efcf6042c2cf297919e09e42645c39"}
+      ],
       "1.33.4" => [
         {:darwin, :arm64, "ea504cac8ba53ef583d0f912d7834f4bff88eb647cfb10cb1dd24962b1dc062d"},
         {:darwin, :amd64, "1e2d79b4a237443e201578fc825052245d2a71c9a17e2a5d1327fa35f9e8fc0e"},

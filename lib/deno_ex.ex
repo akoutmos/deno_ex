@@ -1,5 +1,5 @@
 defmodule DenoEx do
-  @default_executable_location :deno_ex |> :code.priv_dir() |> Path.join("bin")
+  @default_executable_path :deno_ex |> :code.priv_dir() |> Path.join("bin")
   @env_location_variable "DENO_LOCATION"
 
   alias DenoEx.Pipe
@@ -19,7 +19,7 @@ defmodule DenoEx do
 
   ### Function Option
 
-       iex> DenoEx.run({:file, Path.join(~w[test support hello.ts])}, [], [deno_location: "#{@default_executable_location}"])
+       iex> DenoEx.run({:file, Path.join(~w[test support hello.ts])}, [], [deno_location: "#{@default_executable_path}"])
        {:ok, "Hello, world.#{"\\n"}"}
 
   ### Application Configuration
@@ -34,11 +34,11 @@ defmodule DenoEx do
     `#{@env_location_variable}=path`
   """
 
-  @executable_location Application.compile_env(
-                         :deno_ex,
-                         :exectutable_location,
-                         @default_executable_location
-                       )
+  @executable_path Application.compile_env(
+                     :deno_ex,
+                     :exectutable_location,
+                     @default_executable_path
+                   )
 
   @typedoc """
   The path to the script that should be executed, or a tuple denoting
@@ -91,10 +91,57 @@ defmodule DenoEx do
   end
 
   @doc """
+  Vendors Deno dependencies into the given location
+  """
+  def vendor_dependencies(script_paths, vendor_location, lock_file_location, args) do
+    deno_path = Path.join(DenoEx.executable_path(), "deno")
+
+    System.cmd(
+      deno_path,
+      ~w[vendor #{Enum.join(script_paths, " ")} --output #{vendor_location} --lock=#{lock_file_location}] ++ args
+    )
+  end
+
+  @doc """
+  Locks the Deno dependencies
+  """
+  def lock_dependencies(script_paths, lock_file_location, _args) do
+    deno_path = Path.join(DenoEx.executable_path(), "deno")
+
+    Enum.each(script_paths, fn script_path ->
+      System.cmd(deno_path, ~w[cache --lock=#{lock_file_location} #{script_path}])
+    end)
+  end
+
+  @doc """
   Returns the location where the deno script is expected to be located.
   """
-  @spec executable_location() :: String.t()
-  def executable_location do
-    System.get_env(@env_location_variable, @executable_location)
+  @spec executable_path() :: String.t()
+  def executable_path do
+    System.get_env(@env_location_variable, @executable_path)
+  end
+
+  @doc """
+  Returns the vendor location where deno script dependencies will be stored
+  """
+  @spec vendor_dir(atom()) :: String.t()
+  def vendor_dir(app) do
+    Path.join([:code.priv_dir(app), "deno"])
+  end
+
+  @doc """
+  Returns the default import map path
+  """
+  @spec import_map_path(atom()) :: String.t()
+  def import_map_path(app) do
+    Path.join(vendor_dir(app), "import_map.json")
+  end
+
+  @doc """
+  Returns the default lock file path
+  """
+  @spec lock_file_path(atom()) :: String.t()
+  def lock_file_path(app) do
+    Path.join([vendor_dir(app), "deno.lock"])
   end
 end

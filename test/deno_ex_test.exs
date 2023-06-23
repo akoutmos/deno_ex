@@ -1,7 +1,12 @@
 defmodule DenoExTest do
   use ExUnit.Case, async: true
-
   doctest DenoEx
+
+  @moduletag :tmp_dir
+
+  def import_map_path(tmp_dir) do
+    Path.join(~w[#{tmp_dir} vendor_deps import_map.json])
+  end
 
   setup_all :create_test_file
 
@@ -19,6 +24,18 @@ defmodule DenoExTest do
     env
     |> Map.put(:path, path)
     |> Map.put(:content, content)
+  end
+
+  test "vendor_dir" do
+    assert DenoEx.vendor_dir(:deno_ex) =~ "priv/deno"
+  end
+
+  test "import_map_path" do
+    assert DenoEx.import_map_path(:deno_ex) =~ "priv/deno/import_map.json"
+  end
+
+  test "lock_file_path" do
+    assert DenoEx.lock_file_path(:deno_ex) =~ "priv/deno/deno.lock"
   end
 
   test "works with no arguments" do
@@ -186,36 +203,92 @@ defmodule DenoExTest do
     end
   end
 
+  test "vendor_dependencies", %{tmp_dir: tmp_dir} do
+    vendor_dir = Path.join(tmp_dir, "vendor_deps")
+
+    try do
+      lock_file_path = Path.join(vendor_dir, "deno.lock")
+
+      script_path = Path.join(~w[test support hrtime.ts])
+
+      assert {"", 0} = DenoEx.vendor_dependencies([script_path], vendor_dir, lock_file_path, ~w[--force])
+      assert :ok = DenoEx.lock_dependencies([script_path], lock_file_path, ~w[--force])
+
+      expected_files = Enum.sort(["deno.lock", "import_map.json", "deno.land"])
+      assert expected_files == vendor_dir |> File.ls!() |> Enum.sort()
+    after
+      File.rm_rf!(vendor_dir)
+    end
+  end
+
   describe "allow_hrtime" do
     setup do
       {:ok, %{script: Path.join(~w[test support hrtime.ts])}}
     end
 
-    test "without hrtime allowed", %{script: script} do
+    test "when no remote and not using vendored dependencies", %{script: script} do
+      assert {:error, _} = DenoEx.run({:file, script}, ~w[], allow_hrtime: false, no_remote: true)
+    end
+
+    test "without hrtime allowed", %{script: script_path, tmp_dir: tmp_dir} do
       non_high_resolution = 1_000_000
 
-      assert {:ok, time} = DenoEx.run({:file, script}, ~w[], allow_hrtime: false)
+      vendor_dir = Path.join(tmp_dir, "vendor_deps")
+      lock_file_path = Path.join(vendor_dir, "deno.lock")
+
+      {"", 0} = DenoEx.vendor_dependencies([script_path], vendor_dir, lock_file_path, ~w[--force])
+      :ok = DenoEx.lock_dependencies([script_path], lock_file_path, ~w[--force])
+
+      assert {:ok, time} =
+               DenoEx.run({:file, script_path}, ~w[],
+                 allow_hrtime: false,
+                 no_remote: true,
+                 import_map: import_map_path(tmp_dir),
+                 cached_only: true,
+                 lock: DenoEx.lock_file_path(:deno_ex)
+               )
+
+      assert match?({_, _}, Integer.parse(time)), "#{time} is not an integer"
 
       {time, _} = Integer.parse(time)
 
       assert rem(time, non_high_resolution) == 0
 
-      assert {:ok, time} = DenoEx.run({:file, script}, ~w[])
+      assert {:ok, time} = DenoEx.run({:file, script_path}, ~w[], no_remote: true, import_map: import_map_path(tmp_dir))
+
       {time, _} = Integer.parse(time)
 
       assert rem(time, non_high_resolution) == 0
     end
 
-    test "when hrtime is allowed", %{script: script} do
+    test "when hrtime is allowed", %{script: script_path, tmp_dir: tmp_dir} do
       non_high_resolution = 1_000_000
 
+      vendor_dir = Path.join(tmp_dir, "vendor_deps")
+      lock_file_path = Path.join(vendor_dir, "deno.lock")
+
+      {"", 0} = DenoEx.vendor_dependencies([script_path], vendor_dir, lock_file_path, ~w[--force])
+      :ok = DenoEx.lock_dependencies([script_path], lock_file_path, ~w[--force])
+
       # using two times to reduce the chance that both will be ending in 000_000
-      assert {:ok, time} = DenoEx.run({:file, script}, ~w[], allow_hrtime: true)
+      assert {:ok, output1} =
+               DenoEx.run({:file, script_path}, ~w[],
+                 allow_hrtime: true,
+                 no_remote: true,
+                 import_map: import_map_path(tmp_dir)
+               )
 
-      assert {:ok, time2} = DenoEx.run({:file, script}, ~w[], allow_hrtime: true)
+      assert {:ok, output2} =
+               DenoEx.run({:file, script_path}, ~w[],
+                 allow_hrtime: true,
+                 no_remote: true,
+                 import_map: import_map_path(tmp_dir)
+               )
 
-      {time, _} = Integer.parse(time)
-      {time2, _} = Integer.parse(time2)
+      assert match?({_, _}, Integer.parse(output1)), "#{output1} is not an integer"
+      assert match?({_, _}, Integer.parse(output2)), "#{output2} is not an integer"
+      {time, _} = Integer.parse(output1)
+      {time2, _} = Integer.parse(output2)
 
       assert rem(time + time2, non_high_resolution) != 0
     end

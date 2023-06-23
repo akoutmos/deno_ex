@@ -34,3 +34,6 @@ deno_ex-*.tar
 # Dialyzer PLT files
 /priv/plts/*.plt
 /priv/plts/*.plt.hash
+
+# Used in a real DenoEx install, but not to be checked in on working with DenoEx.
+/priv/deno

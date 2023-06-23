@@ -1,4 +1,4 @@
 {
-  "skip_files": ["test/"],
+  "skip_files": ["test/", "lib/tasks/install.ex", "lib/tasks/deps/get.ex"],
   "minimum_coverage": 65
 }
