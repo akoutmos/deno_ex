@@ -46,7 +46,8 @@
 DenoEx is designed to make it simple to run scripts using [Deno](https://deno.com/runtime) from your Elixir
 applications. Deno is a modern runtime for JavaScript and TypeScript that uses V8 and built-in Rust. It is secure by
 default, so you must opt into each level of access your scripts need when running. This includes reading environment
-variables.
+variables. It is for this reason that the Deno runtime was selected as I needed a secure sandbox to run external
+Javascript and Typescript programs.
 
 ## Installation
 
