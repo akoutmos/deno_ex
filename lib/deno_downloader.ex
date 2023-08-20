@@ -7,6 +7,11 @@ defmodule DenoEx.DenoDownloader do
     latest_version: "1.34.3",
     github_repo: "denoland/deno",
     download_versions: %{
+      "1.36.1" => [
+        {:darwin, :arm64, "dbf5afdac06ad480f6dfbc80fd96b719c88348b1dc801cb2f887f02307dd99a3"},
+        {:darwin, :amd64, "2778bc4091e598725076e5073ea604f853170ab077fcb15db4a0fb1c183f17b3"},
+        {:linux, :amd64, "636f4eb643610d9b9c82649d4511c9853817f88de9606282f058d0d8fbd647cc"}
+      ],
       "1.34.3" => [
         {:darwin, :arm64, "fe48d39286fe973211500f6426300181a8f19103dd278dcbe679a586b14d8eb6"},
         {:darwin, :amd64, "d25b6f0de52ccdf5818df184e5c795a01d06e5e28c14c4845c1ad8272c2eadad"},

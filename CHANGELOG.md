@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2023-08-20
+
+### Fixed
+
+- Error SSL error that would occur when running `Mix.Tasks.Compile.Deno` [#32](https://github.com/akoutmos/deno_ex/pull/32)
+
 ## [0.4.0] - 2023-07-07
 
 ### Added

@@ -56,7 +56,7 @@ The package can be installed by adding `deno_ex` to your list of dependencies in
 ```elixir
 def deps do
   [
-    {:deno_ex, "~> 0.4.0"}
+    {:deno_ex, "~> 0.5.0"}
   ]
 end
 ```
@@ -74,7 +74,7 @@ Once you have DenoEx, you will need the Deno runtime. We have created a mix task
 that you can use to install Deno. By default, Deno will be installed in the
 `priv` directory for the `deno_ex` dependency. `my_project/_build/dev/lib/deno_ex/priv/bin`
 
-  `mix deno_ex.install`
+`mix deno_ex.install`
 
 The installation path may be changed using `--path <path>`. Permissions may also
 be changed on the `deno` executable using `--chmod <octal>`. The default
@@ -110,7 +110,7 @@ Checkout my [GitHub Sponsorship page](https://github.com/sponsors/akoutmos) if y
 Create a Typescript file with the following contents.
 
 ```typescript
-console.log("Hello, world.")
+console.log("Hello, world.");
 ```
 
 Open iex using `iex -S mix` and then run the TypeScript file:
@@ -136,7 +136,6 @@ config :deno_ex,
 `scripts_path` can be a list of paths to scripts or wildcards.
 
 `mix deno_ex.deps.get` will load all dependencies in the cache and update the lock file.
-
 
 In order to ensure that your scripts use the dependencies that are cached and locked your
 scripts need a few more arguments.

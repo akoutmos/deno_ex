@@ -85,9 +85,9 @@ defmodule DenoEx.MixProject do
       {:nimble_options, "~> 1.0.2"},
 
       # Development dependencies
-      {:recon_ex, "~> 0.9.1", only: [:dev]},
-      {:ex_doc, "~> 0.29.4", only: :dev},
-      {:excoveralls, "~> 0.16.1", only: [:test, :dev], runtime: false},
+      {:recon, "~> 2.5", only: [:dev]},
+      {:ex_doc, "~> 0.30.5", only: :dev},
+      {:excoveralls, "~> 0.17.0", only: [:test, :dev], runtime: false},
       {:doctor, "~> 0.21.0", only: :dev},
       {:credo, "~> 1.7.0", only: :dev},
       {:dialyxir, "~> 1.3.0", only: :dev, runtime: false}
