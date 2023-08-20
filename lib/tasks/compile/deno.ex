@@ -14,10 +14,10 @@ defmodule Mix.Tasks.Compile.Deno do
     if File.exists?(deno_path) do
       {:noop, []}
     else
-      # if function_exported?(Mix, :ensure_application!, 1) do
-      #   Mix.ensure_application!(:inets)
-      #   Mix.ensure_application!(:ssl)
-      # end
+      if function_exported?(Mix, :ensure_application!, 1) do
+        Mix.ensure_application!(:inets)
+        Mix.ensure_application!(:ssl)
+      end
 
       _ = DenoEx.DenoDownloader.install(DenoEx.executable_path(), 0o770)
 
